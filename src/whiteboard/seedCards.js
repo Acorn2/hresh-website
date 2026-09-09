@@ -1,0 +1,126 @@
+// 预制种子卡：owner 固定为 Hresh赫什（管理员），访客只读。
+// 管理员拖拽/双击后的本地调整会保存在 localStorage。
+
+export const seedCards = [
+  {
+    id: 'seed-vote-who',
+    kind: 'seed',
+    owner: 'hresh',
+    tpl: 'vote',
+    data: {
+      question: '🕵️ 你是怎么找到这里的？',
+      options: [
+        { text: '📦 因为某个产品', votes: [] },
+        { text: '🧑‍🤝‍🧑 朋友推荐', votes: [] },
+        { text: '🌀 互联网偶遇', votes: [] },
+        { text: '🤖 来看 AI 怎么做产品', votes: [] },
+      ],
+    },
+    x: 631,
+    y: 140,
+    w: 300,
+    h: 320,
+    createdAt: 0,
+  },
+  {
+    id: 'seed-welcome',
+    kind: 'seed',
+    owner: 'hresh',
+    tpl: 'washi',
+    data: {
+      title: '👋 欢迎来到工作台',
+      body: '这里放着 Hresh赫什正在做的产品和一些过程记录。\n🪪 留一张名片介绍你自己\n📸 贴一张拍立得，😆 扔个贴纸\n🗳️ 发起或参与一个投票\n🖌️ 点工具栏「涂鸦」，在白板任意角落画画\n\n只能改/删自己创建的东西。',
+    },
+    x: 951,
+    y: 325,
+    w: 380,
+    h: 280,
+    createdAt: 0,
+  },
+  {
+    id: 'seed-about',
+    kind: 'seed',
+    owner: 'hresh',
+    tpl: 'profile',
+    data: {
+      avatarImg: '/hresh-avatar-transparent.png',
+      name: 'Hresh赫什',
+      sub: '用 AI 把想法做成产品的独立开发者',
+      slogan: '从需求、设计到上线，持续实践产品',
+      belief: '欢迎看看这些正在生长的作品。',
+      links: [],
+    },
+    x: 303,
+    y: 478,
+    w: 380,
+    h: 360,
+    createdAt: 0,
+  },
+
+  // ---------- 产品卡片 ----------
+  {
+    id: 'seed-polaroid-linkbox',
+    kind: 'seed',
+    owner: 'hresh',
+    tpl: 'polaroid',
+    data: { image: '/hresh-avatar-transparent.png', caption: '收链 LinkBox：本地优先的链接收纳' },
+    x: 701,
+    y: 479,
+    w: 230,
+    h: 340,
+    createdAt: 0,
+  },
+  {
+    id: 'seed-polaroid-readcover',
+    kind: 'seed',
+    owner: 'hresh',
+    tpl: 'polaroid',
+    data: { image: '/hresh-avatar-transparent.png', caption: 'ReadCover：阅读掩护工具' },
+    x: 943,
+    y: 629,
+    w: 230,
+    h: 380,
+    createdAt: 0,
+  },
+  {
+    id: 'seed-polaroid-tongliao',
+    kind: 'seed',
+    owner: 'hresh',
+    tpl: 'polaroid',
+    data: { image: '/hresh-avatar-transparent.png', caption: '通辽宇宙：可搜索的知识库' },
+    x: 699,
+    y: 840,
+    w: 230,
+    h: 430,
+    createdAt: 0,
+  },
+
+  // ---------- 手绘卡 ----------
+  {
+    id: 'seed-sticky-builder',
+    kind: 'seed',
+    owner: 'hresh',
+    tpl: 'sticky',
+    data: { text: 'BUILD → SHIP → LEARN\n小步做，持续改' },
+    x: 1183,
+    y: 633,
+    w: 220,
+    h: 170,
+    createdAt: 0,
+  },
+  {
+    id: 'seed-darkquote',
+    kind: 'seed',
+    owner: 'hresh',
+    tpl: 'darkquote',
+    data: { text: '"把想法做成产品，再从真实反馈里继续学习。"', author: 'Hresh赫什' },
+    x: 337,
+    y: 925,
+    w: 340,
+    h: 190,
+    createdAt: 0,
+  },
+];
+
+// 留言卡可选颜色
+export const messageColors = ['#F4D758', '#2B7FD8', '#FFF9EC', '#756F64', '#211E1A'];
