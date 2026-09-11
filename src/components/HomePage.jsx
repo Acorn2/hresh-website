@@ -6,10 +6,13 @@ import {
   portfolioProducts,
 } from './homeData';
 
+const wallpaperStarGlyphs = ['✦', '·', '✧', '◆', '✣', '✦', '·', '✧'];
+
 function DesktopIcon({ icon }) {
   return (
     <div className={`dicon${icon.featured ? ' is-featured' : ''}`} data-href={icon.href} data-win={icon.win} data-goto={icon.goto} style={icon.style}>
       <div className={icon.artClassName} data-ext={icon.extension}>
+        {icon.kind && <IconGlyph kind={icon.kind} />}
         {icon.image && <img src={icon.image.src} alt={icon.image.alt} loading="lazy" />}
         {icon.birthday && <span className="birthday-icon-mark">B</span>}
       </div>
@@ -17,6 +20,23 @@ function DesktopIcon({ icon }) {
       <div className="dicon-label">{icon.label}</div>
     </div>
   );
+}
+
+function IconGlyph({ kind }) {
+  const common = { viewBox: '0 0 48 48', 'aria-hidden': 'true', focusable: 'false' };
+  const glyphs = {
+    about: <><rect x="11" y="10" width="26" height="28" rx="4" /><circle cx="24" cy="20" r="4" /><path d="M17 32c1.8-4.6 12.2-4.6 14 0" /></>,
+    works: <><rect x="9" y="14" width="22" height="24" rx="3" /><rect x="17" y="10" width="22" height="24" rx="3" /><path d="M22 18h11M22 23h8" /></>,
+    log: <><rect x="11" y="9" width="26" height="30" rx="3" /><path d="M17 17h14M17 23h14M17 29h9" /><circle cx="14" cy="17" r="1" fill="currentColor" stroke="none" /></>,
+    nature: <><path d="M13 31c10-1 18-8 21-19-10 1-18 8-21 19Z" /><path d="M13 35c5-7 10-12 18-16" /><circle cx="15" cy="15" r="2" /></>,
+    readcover: <><path d="M10 12c5-2 10-1 14 2v22c-4-3-9-4-14-2Z" /><path d="M38 12c-5-2-10-1-14 2v22c4-3 9-4 14-2Z" /><path d="M17 17h5M31 17h-5" /></>,
+    universe: <><circle cx="24" cy="24" r="5" /><circle cx="13" cy="14" r="3" /><circle cx="36" cy="13" r="2.5" /><circle cx="35" cy="35" r="3" /><path d="M17 17l3 3M28 20l6-5M28 28l5 5" /></>,
+    zhihu: <><path d="M10 13h28v19H10z" /><path d="m15 19 4 4 5-6M27 27h6" /><path d="M16 36h16" /></>,
+    bilibili: <><rect x="9" y="14" width="30" height="22" rx="6" /><path d="m18 10 4 4M30 10l-4 4" /><path d="m21 21 8 4-8 4Z" /></>,
+    juejin: <><path d="m24 8 13 9-13 23-13-23Z" /><path d="m18 19 6-4 6 4-6 11Z" /><path d="M15 34h18" /></>,
+    workspace: <><circle cx="24" cy="22" r="9" /><path d="M16 36c2-5 14-5 16 0" /><path d="M12 13h4M32 13h4" /></>,
+  };
+  return <svg className={`dicon-glyph glyph-${kind}`} {...common} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{glyphs[kind] || glyphs.works}</svg>;
 }
 
 function FolderIcon({ href, win, extension, label }) {
@@ -197,7 +217,10 @@ function HomeTab() {
       <div className="desktop" id="desktop">
         <div className="desktop-menubar"><span className="mb-logo">Hresh OS</span><span className="mb-item">About</span><span className="mb-item">Values</span><span className="mb-item">Now</span><span className="mb-clock" id="mbClock">--:--</span></div>
         <div className="desktop-surface" id="desktopSurface">
-          {wallpaperStars.map((style, index) => <span key={index} className="wp-star" style={style}>✦</span>)}
+          {wallpaperStars.map((style, index) => {
+            const glyphIndex = index % wallpaperStarGlyphs.length;
+            return <span key={index} className={`wp-star wp-star-${glyphIndex}`} style={style}>{wallpaperStarGlyphs[glyphIndex]}</span>;
+          })}
           <div className="desktop-character desktop-character-person" data-character="person" role="img" aria-label="Hresh赫什正在向柯基招手">
             <img id="desktopCharacterPerson" src="/hresh-animation-person-idle.png" alt="" loading="eager" />
           </div>
@@ -239,6 +262,50 @@ const accessLabels = {
   article: '阅读介绍',
 };
 
+const productScreenshots = {
+  '儿童 3D 自然博物馆': '/works/nature-museum.png',
+  '收链 / LinkBox': '/works/linkbox-store.png',
+  '云锦人物志': '/works/yunjin-article.png',
+  '通辽宇宙知识库': '/works/tongliao-universe.png',
+  '亲友记 / KinKeep': '/works/kinkeep-store.png',
+  TabNest: '/works/tabnest.png',
+};
+
+function ProductDossier({ product, index, onClose, onShowQr }) {
+  const screenshot = productScreenshots[product.name];
+  const highlights = product.highlights || ['产品结构待持续整理', '作品档案持续补全'];
+
+  return <div className="product-dossier-overlay" role="presentation" onClick={onClose}>
+    <section className="product-dossier" role="dialog" aria-modal="true" aria-labelledby="product-dossier-title" onClick={(event) => event.stopPropagation()}>
+      <div className="product-dossier-topbar">
+        <span>works / {String(index + 1).padStart(2, '0')}</span>
+        <button className="product-dossier-close" type="button" aria-label="关闭作品详情" onClick={onClose}>×</button>
+      </div>
+      <div className="product-dossier-body">
+        <div className="product-dossier-main">
+          <p className="product-dossier-index">PRODUCT DOSSIER — {String(index + 1).padStart(2, '0')}</p>
+          <h2 id="product-dossier-title">{product.name}</h2>
+          <p className="product-dossier-category">{product.category}</p>
+          <p className="product-dossier-description">{product.description}</p>
+          <div className="product-dossier-actions">
+            <ProductAccess product={product} onShowQr={onShowQr} />
+            <span className="product-status">{product.status}</span>
+          </div>
+        </div>
+        <div className={`product-dossier-media${screenshot ? ' has-screenshot' : ''}`}>
+          {screenshot ? <img src={screenshot} alt={`${product.name} 的公开页面截图`} /> : product.visual ? <ProductVisual product={product} /> : <div className="product-dossier-placeholder"><span>LOCAL / ARCHIVE</span><strong>作品画面尚未公开</strong><small>保留产品信息与访问入口</small></div>}
+          {screenshot && <span className="product-dossier-media-note">LIVE PAGE CAPTURE</span>}
+        </div>
+      </div>
+      <div className="product-dossier-notes">
+        <div><span>01 / 作品定位</span><p>{product.category}</p></div>
+        <div><span>02 / 核心切面</span><ul>{highlights.map((highlight) => <li key={highlight}>{highlight}</li>)}</ul></div>
+        <div><span>03 / 交付状态</span><p>{product.status}</p></div>
+      </div>
+    </section>
+  </div>;
+}
+
 function ProductAccess({ product, onShowQr }) {
   const links = product.links || [];
   const hasQr = Boolean(product.qr?.src);
@@ -257,6 +324,7 @@ function ProductAccess({ product, onShowQr }) {
 
 function WorksTab() {
   const [qrProduct, setQrProduct] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   return (
     <main className="tab-page" id="page-works">
@@ -270,12 +338,32 @@ function WorksTab() {
         </div>
         <div className="section-label" style={{ marginTop: '64px' }}>ls works/</div><h2 className="section-heading">作品集</h2>
         <div className="works-grid">
-          {portfolioProducts.map((product, index) => <div className="work-dim" key={product.name}><div className="dim-num">product_{String(index + 1).padStart(2, '0')}</div><h3>{product.name}</h3><div className="product-category">{product.category}</div><p className="dim-desc">{product.description}</p><div className="product-footer"><span className="product-status">{product.status}</span><ProductAccess product={product} onShowQr={setQrProduct} /></div></div>)}
+          {portfolioProducts.map((product, index) => <article className="work-dim" key={product.name}>
+            {product.visual && <ProductVisual product={product} />}
+            <div className="work-dim-content"><div className="dim-num">product_{String(index + 1).padStart(2, '0')}</div><h3>{product.name}</h3><div className="product-category">{product.category}</div><p className="dim-desc">{product.description}</p>
+            {product.highlights && <ul className="product-highlights">{product.highlights.map((highlight) => <li key={highlight}>{highlight}</li>)}</ul>}
+            <div className="product-footer"><span className="product-status">{product.status}</span><button className="product-detail-trigger" type="button" onClick={() => setSelectedProduct({ product, index })}>查看作品档案 <span aria-hidden="true">→</span></button></div></div>
+          </article>)}
         </div>
+        {selectedProduct && <ProductDossier product={selectedProduct.product} index={selectedProduct.index} onClose={() => setSelectedProduct(null)} onShowQr={setQrProduct} />}
         {qrProduct && <div className="product-qr-overlay" role="presentation" onClick={() => setQrProduct(null)}><section className="product-qr-dialog" role="dialog" aria-modal="true" aria-label={`${qrProduct.name} 小程序码`} onClick={(event) => event.stopPropagation()}><button className="product-qr-close" type="button" aria-label="关闭二维码" onClick={() => setQrProduct(null)}>×</button><div className="product-qr-title">{qrProduct.name}</div><img src={qrProduct.qr.src} alt={`${qrProduct.name} 小程序码`} /><p>微信扫码或长按识别</p></section></div>}
       </div>
     </main>
   );
+}
+
+function ProductVisual({ product }) {
+  return <div className={`product-visual product-visual-${product.visual}`} aria-label={`${product.name} 功能预览`}>
+    <div className="visual-topbar"><span></span><span></span><span></span><i>{product.visual === 'linkbox' ? 'linkbox.app' : product.visual === 'nature' ? 'naturemuseum.top' : 'workspace / local'}</i></div>
+    <div className="visual-art">
+      {product.visual === 'nature' && <><div className="nature-orb">✦</div><div className="nature-leaf leaf-one">⌁</div><div className="nature-leaf leaf-two">⌁</div><div className="nature-copy">今天，看一只<br />会发光的甲虫</div></>}
+      {product.visual === 'readframe' && <><div className="frame-video">▶<span>00:13:26</span></div><div className="frame-lines"><b>00:13:26</b><i></i><i></i><i></i></div></>}
+      {product.visual === 'comments' && <><div className="comment-filter">在此范围内检索 <b>⌕</b></div><div className="comment-row"><i></i><span>这段观点值得再核实</span></div><div className="comment-row"><i></i><span>已标记：争议线索</span></div></>}
+      {product.visual === 'linkbox' && <><div className="phone-shell"><div className="phone-notch"></div><b>收链</b><div className="saved-link">新收录<br /><strong>值得晚点读的网页</strong></div><div className="phone-tabs">全部　未读　标签</div></div></>}
+      {product.visual === 'readcover' && <><div className="cover-doc"><div className="doc-ruler"></div><b>项目周报</b><i></i><i></i><i></i><i></i><div className="cover-caret"></div></div><div className="cover-switch">保护模式　<span>ON</span></div></>}
+    </div>
+    <div className="visual-caption">{product.visualCaption}</div>
+  </div>;
 }
 
 function SystemTab() {
