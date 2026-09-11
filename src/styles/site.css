@@ -303,26 +303,47 @@ body {
   overflow: hidden;
   background: #2B7FD8;
 }
-/* Draggable sticker */
-.desktop-sticker {
+/* Independent desktop characters */
+.desktop-character {
+  --character-baseline: max(7vh, 4.5rem);
   position: absolute;
-  bottom: 20px;
-  right: 22%;
-  width: 280px;
-  cursor: grab;
+  /* Align visible feet, compensating for transparent padding in each sprite. */
+  bottom: calc(var(--character-baseline) - var(--character-height) * var(--foot-inset));
+  height: var(--character-height);
+  transform: translateX(-50%);
   z-index: 5;
-  transition: filter 0.2s;
+  transition: filter 0.2s, opacity 0.18s ease;
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
+  will-change: left, top, transform, opacity;
 }
-.desktop-sticker:active { cursor: grabbing; }
-.desktop-sticker:hover { filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3)); }
-.desktop-sticker img {
-  width: 100%;
-  height: auto;
+.desktop-character img {
+  display: block;
+  width: auto;
+  height: 100%;
   pointer-events: none;
+  transform-origin: center bottom;
+  transition: transform 0.12s ease-out;
+  filter: drop-shadow(0 0 1.5px #FFF9EC);
 }
+.desktop-character-person {
+  --character-height: clamp(17rem, 35vh, 28rem);
+  --foot-inset: 0.012;
+  left: 21%;
+}
+.desktop-character-corgi {
+  --character-height: clamp(9rem, 18vh, 15rem);
+  --foot-inset: 0.045;
+  left: 73%;
+  z-index: 6;
+}
+.desktop-character-corgi.is-settled img { transform: scale(0.82); }
+@media (hover: hover) {
+  .desktop-character { cursor: grab; }
+  .desktop-character:hover { filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3)); }
+}
+.desktop-character.is-dragging { cursor: grabbing; }
 /* Animated stars wallpaper */
 .wp-star {
   position: absolute;
@@ -1518,7 +1539,20 @@ body {
   .product-link { min-height: 44px; box-sizing: border-box; }
 
   /* Desktop metaphor on small screens */
-  .desktop-sticker { width: 150px; left: 12px; right: auto; bottom: 16px; }
+  .desktop-character {
+    --character-baseline: max(7vh, calc(4.5rem + env(safe-area-inset-bottom)));
+    transform: none;
+  }
+  .desktop-character-person {
+    --character-height: clamp(12rem, 32vh, 15rem);
+    left: 0.75rem;
+    right: auto;
+  }
+  .desktop-character-corgi {
+    --character-height: clamp(7rem, 20vh, 9rem);
+    left: auto;
+    right: 0.75rem;
+  }
   .dicon { width: 68px; }
   .dicon-art { width: 42px; height: 42px; }
   .dicon-label { font-size: 10px; }

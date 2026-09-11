@@ -168,7 +168,12 @@ function HomeTab() {
         <div className="desktop-menubar"><span className="mb-logo">Hresh OS</span><span className="mb-item">About</span><span className="mb-item">Values</span><span className="mb-item">Now</span><span className="mb-clock" id="mbClock">--:--</span></div>
         <div className="desktop-surface" id="desktopSurface">
           {wallpaperStars.map((style, index) => <span key={index} className="wp-star" style={style}>✦</span>)}
-          <div className="desktop-sticker" id="buerSticker"><img src="/hresh-avatar-transparent.png" alt="Hresh赫什" /></div>
+          <div className="desktop-character desktop-character-person" data-character="person" role="img" aria-label="Hresh赫什正在向柯基招手">
+            <img id="desktopCharacterPerson" src="/hresh-animation-person-idle.png" alt="" loading="eager" />
+          </div>
+          <div className="desktop-character desktop-character-corgi is-settled" data-character="corgi" role="img" aria-label="Hresh赫什的三色柯基">
+            <img id="desktopCharacterCorgi" src="/hresh-animation-corgi-sit.png" alt="" loading="eager" />
+          </div>
           <div className="desktop-icons">{desktopIcons.map((icon) => <DesktopIcon key={icon.label} icon={icon} />)}</div>
           <WindowTemplates />
         </div>

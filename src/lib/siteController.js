@@ -292,7 +292,10 @@ export function initializeSite() {
       document.getElementById('heroSection').style.display = 'none';
       applyScrollLock();
       window.scrollTo(0, 0);
-      setTimeout(function() { overlay.classList.remove('active'); }, 250);
+      setTimeout(function() {
+        overlay.classList.remove('active');
+        if (characterStory) characterStory.prime();
+      }, 250);
     }, 1800);
   }
 
@@ -536,6 +539,286 @@ export function initializeSite() {
     });
   });
 
+  /* ============================================
+     CHARACTER STORY: hover/tap-triggered wave → run → sit
+     ============================================ */
+  var characterStory = (function() {
+    var person = surface.querySelector('[data-character="person"]');
+    var corgi = surface.querySelector('[data-character="corgi"]');
+    var personImage = document.getElementById('desktopCharacterPerson');
+    var corgiImage = document.getElementById('desktopCharacterCorgi');
+    var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    var personFrames = {
+      idle: '/hresh-animation-person-idle.png',
+      wave: '/hresh-animation-person-wave.png',
+      return: '/hresh-animation-person-return.png'
+    };
+    var corgiFrames = {
+      sit: '/hresh-animation-corgi-sit.png',
+      run: [
+        '/hresh-animation-corgi-run-1.png',
+        '/hresh-animation-corgi-run-2.png',
+        '/hresh-animation-corgi-run-3.png'
+      ]
+    };
+    var state = 'idle'; // idle | running | settled
+    var paused = false;
+    var frameId = null;
+    var cycleStartedAt = 0;
+    var pausedElapsed = 0;
+    var corgiStart = null;
+    var corgiTarget = null;
+    var armed = true;
+    var hoverTimer = null;
+    var pointerPressed = false;
+
+    if (!person || !corgi || !personImage || !corgiImage) return null;
+
+    Object.values(personFrames).concat(corgiFrames.run, corgiFrames.sit).forEach(function(src) {
+      var image = new Image();
+      image.src = src;
+    });
+
+    function setFrame(image, source) {
+      if (image.getAttribute('src') !== source) image.setAttribute('src', source);
+    }
+
+    function positionInSurface(character) {
+      var rect = character.getBoundingClientRect();
+      var surfaceRect = surface.getBoundingClientRect();
+      var maxX = Math.max(0, surfaceRect.width - rect.width);
+      var maxY = Math.max(0, surfaceRect.height - rect.height);
+      var x = rect.left - surfaceRect.left;
+      var y = rect.top - surfaceRect.top;
+
+      // Browser zoom and an orientation change can briefly report the prior viewport's
+      // layout. Fall back to the active CSS inset, then keep the character on-screen.
+      if (x < 0 || x > maxX) {
+        var styles = window.getComputedStyle(character);
+        var left = parseFloat(styles.left);
+        var right = parseFloat(styles.right);
+        x = !Number.isNaN(left) ? left : (!Number.isNaN(right) ? surfaceRect.width - right - rect.width : x);
+      }
+      if (y < 0 || y > maxY) {
+        var top = parseFloat(window.getComputedStyle(character).top);
+        var bottom = parseFloat(window.getComputedStyle(character).bottom);
+        y = !Number.isNaN(top) ? top : (!Number.isNaN(bottom) ? surfaceRect.height - bottom - rect.height : y);
+      }
+      return { x: clamp(x, 0, maxX), y: clamp(y, 0, maxY) };
+    }
+
+    function freezeAtVisualPosition(character) {
+      var position = positionInSurface(character);
+      character.style.transform = 'none';
+      character.style.right = 'auto';
+      character.style.bottom = 'auto';
+      character.style.left = position.x + 'px';
+      character.style.top = position.y + 'px';
+      return position;
+    }
+
+    function clamp(value, minimum, maximum) {
+      return Math.max(minimum, Math.min(maximum, value));
+    }
+
+    function getCorgiTarget() {
+      var personRect = person.getBoundingClientRect();
+      var corgiRect = corgi.getBoundingClientRect();
+      var surfaceRect = surface.getBoundingClientRect();
+      return {
+        x: clamp(personRect.right - surfaceRect.left + 8, 0, surfaceRect.width - corgiRect.width),
+        y: clamp(personRect.bottom - surfaceRect.top - corgiRect.height, 0, surfaceRect.height - corgiRect.height)
+      };
+    }
+
+    function easeOutCubic(progress) {
+      return 1 - Math.pow(1 - progress, 3);
+    }
+
+    function cancelPendingHover() {
+      if (!hoverTimer) return;
+      clearTimeout(hoverTimer);
+      hoverTimer = null;
+    }
+
+    function prime() {
+      cancelPendingHover();
+      state = 'idle';
+      paused = false;
+      pausedElapsed = 0;
+      armed = true;
+      if (frameId) nativeCancelAnimationFrame(frameId);
+      frameId = null;
+      corgi.style.opacity = '';
+      corgi.classList.add('is-settled');
+      setFrame(personImage, personFrames.idle);
+      setFrame(corgiImage, corgiFrames.sit);
+    }
+
+    function begin(now) {
+      if (state === 'running' || !armed || reducedMotion.matches) return;
+      cancelPendingHover();
+      armed = false;
+      state = 'running';
+      paused = false;
+      cycleStartedAt = now || performance.now();
+      freezeAtVisualPosition(person);
+      corgiStart = freezeAtVisualPosition(corgi);
+      corgiTarget = null;
+      corgi.style.opacity = '';
+      corgi.style.transform = 'none';
+      corgi.classList.remove('is-settled');
+      setFrame(personImage, personFrames.idle);
+      setFrame(corgiImage, corgiFrames.sit);
+      frameId = requestAnimationFrame(paint);
+    }
+
+    function paint(now) {
+      if (paused || state !== 'running') return;
+      var elapsed = now - cycleStartedAt;
+
+      if (elapsed < 700) {
+        setFrame(personImage, personFrames.idle);
+        setFrame(corgiImage, corgiFrames.sit);
+        corgi.classList.add('is-settled');
+        corgi.style.transform = 'none';
+      } else if (elapsed < 1500) {
+        setFrame(personImage, Math.floor((elapsed - 700) / 200) % 2 ? personFrames.return : personFrames.wave);
+        setFrame(corgiImage, corgiFrames.sit);
+        corgi.classList.add('is-settled');
+      } else if (elapsed < 3300) {
+        var runElapsed = elapsed - 1500;
+        var progress = easeOutCubic(runElapsed / 1800);
+        if (!corgiTarget) corgiTarget = getCorgiTarget();
+        var offsetX = (corgiTarget.x - corgiStart.x) * progress;
+        var offsetY = (corgiTarget.y - corgiStart.y) * progress;
+        setFrame(personImage, personFrames.return);
+        setFrame(corgiImage, corgiFrames.run[Math.floor(runElapsed / 150) % corgiFrames.run.length]);
+        corgi.classList.remove('is-settled');
+        corgi.style.transform = 'translate(' + offsetX + 'px, ' + offsetY + 'px)';
+      } else if (elapsed < 5000) {
+        var finalX = corgiTarget.x - corgiStart.x;
+        var finalY = corgiTarget.y - corgiStart.y;
+        setFrame(personImage, personFrames.return);
+        setFrame(corgiImage, corgiFrames.sit);
+        corgi.classList.add('is-settled');
+        corgi.style.transform = 'translate(' + finalX + 'px, ' + finalY + 'px)';
+      } else {
+        state = 'settled';
+        frameId = null;
+        return;
+      }
+
+      frameId = requestAnimationFrame(paint);
+    }
+
+    person.addEventListener('mouseenter', function() {
+      cancelPendingHover();
+      if (!armed || reducedMotion.matches) return;
+      // Give pointerdown a chance to identify a drag before starting the story.
+      hoverTimer = setTimeout(function() {
+        hoverTimer = null;
+        if (!pointerPressed) begin();
+      }, 80);
+    });
+    person.addEventListener('mouseleave', function() {
+      cancelPendingHover();
+      armed = true;
+    });
+    person.addEventListener('pointerdown', function() {
+      pointerPressed = true;
+      cancelPendingHover();
+    });
+    document.addEventListener('pointerup', function() { pointerPressed = false; });
+    document.addEventListener('pointercancel', function() { pointerPressed = false; });
+    person.addEventListener('click', function() {
+      // On touch devices there is no mouseenter; a tap is the equivalent trigger.
+      if (!window.matchMedia('(hover: hover)').matches && person.dataset.dragged !== '1') begin();
+    });
+
+    return {
+      prime: function() {
+        if (!personImage.complete || !corgiImage.complete) {
+          window.setTimeout(this.prime.bind(this), 100);
+          return;
+        }
+        prime();
+      },
+      cancelPending: cancelPendingHover,
+      pause: function() {
+        if (state !== 'running' || paused) return;
+        paused = true;
+        pausedElapsed = performance.now() - cycleStartedAt;
+        if (frameId) nativeCancelAnimationFrame(frameId);
+        frameId = null;
+        freezeAtVisualPosition(person);
+        freezeAtVisualPosition(corgi);
+      },
+      resume: function() {
+        if (state !== 'running' || !paused || reducedMotion.matches) return;
+        paused = false;
+        cycleStartedAt = performance.now() - pausedElapsed;
+        corgiStart = positionInSurface(corgi);
+        corgiTarget = null;
+        frameId = requestAnimationFrame(paint);
+      }
+    };
+  })();
+
+  /* ============================================
+     INDEPENDENT DRAGGABLE CHARACTERS
+     ============================================ */
+  surface.querySelectorAll('.desktop-character').forEach(function(character) {
+    character.addEventListener('pointerdown', function(e) {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      if (characterStory) characterStory.cancelPending();
+      if (characterStory) characterStory.pause();
+
+      var startX = e.clientX;
+      var startY = e.clientY;
+      var wasDragged = false;
+      var characterRect = character.getBoundingClientRect();
+      var surfaceRect = surface.getBoundingClientRect();
+      var originX = characterRect.left - surfaceRect.left;
+      var originY = characterRect.top - surfaceRect.top;
+      var maxX = Math.max(0, surfaceRect.width - characterRect.width);
+      var maxY = Math.max(0, surfaceRect.height - characterRect.height);
+
+      // A dragged character owns its own left/top coordinates from this point on.
+      character.style.transform = 'none';
+      character.style.right = 'auto';
+      character.style.bottom = 'auto';
+      character.style.left = originX + 'px';
+      character.style.top = originY + 'px';
+      character.classList.add('is-dragging');
+
+      function onMove(ev) {
+        var nextX = Math.max(0, Math.min(maxX, originX + ev.clientX - startX));
+        var nextY = Math.max(0, Math.min(maxY, originY + ev.clientY - startY));
+        if (Math.abs(ev.clientX - startX) > 4 || Math.abs(ev.clientY - startY) > 4) {
+          wasDragged = true;
+          character.dataset.dragged = '1';
+        }
+        character.style.left = nextX + 'px';
+        character.style.top = nextY + 'px';
+      }
+
+      function onUp() {
+        character.classList.remove('is-dragging');
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup', onUp);
+        document.removeEventListener('pointercancel', onUp);
+        if (characterStory) characterStory.resume();
+        if (wasDragged) window.setTimeout(function() { delete character.dataset.dragged; }, 300);
+      }
+
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup', onUp);
+      document.addEventListener('pointercancel', onUp);
+    });
+  });
+
   surface.addEventListener('click', function(e) {
     var closeAction = e.target.closest('[data-close-window]');
     if (closeAction) closeAction.closest('.os-window').remove();
@@ -598,7 +881,7 @@ export function initializeSite() {
     // Click to spawn a star
     surface.addEventListener('click', function(e) {
       // Don't spawn on icon/window interactions
-      if (e.target.closest('.dicon, .os-window, .desktop-sticker')) return;
+      if (e.target.closest('.dicon, .os-window, .desktop-character')) return;
       var star = document.createElement('span');
       star.className = 'click-star';
       star.textContent = '\u2726';
@@ -608,35 +891,6 @@ export function initializeSite() {
       star.style.top = (e.clientY - size / 2) + 'px';
       document.body.appendChild(star);
       setTimeout(function() { star.remove(); }, 750);
-    });
-  })();
-
-  /* ============================================
-     DRAGGABLE STICKER
-     ============================================ */
-  (function() {
-    var sticker = document.getElementById('buerSticker');
-    if (!sticker) return;
-    sticker.addEventListener('pointerdown', function(e) {
-      e.preventDefault();
-      var startX = e.clientX, startY = e.clientY;
-      var origX = sticker.offsetLeft, origY = sticker.offsetTop;
-      // Switch from bottom/right to top/left positioning
-      sticker.style.bottom = 'auto';
-      sticker.style.right = 'auto';
-      sticker.style.left = origX + 'px';
-      sticker.style.top = origY + 'px';
-
-      function onMove(ev) {
-        sticker.style.left = (origX + ev.clientX - startX) + 'px';
-        sticker.style.top = (origY + ev.clientY - startY) + 'px';
-      }
-      function onUp() {
-        document.removeEventListener('pointermove', onMove);
-        document.removeEventListener('pointerup', onUp);
-      }
-      document.addEventListener('pointermove', onMove);
-      document.addEventListener('pointerup', onUp);
     });
   })();
 
