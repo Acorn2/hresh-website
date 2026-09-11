@@ -13,19 +13,17 @@ export const wallpaperStars = [
 ].map(([top, left, size, opacity, duration, wobbleDuration, delay]) => ({ top, left, '--size': size, '--op': opacity, '--dur': duration, '--wdur': wobbleDuration, '--delay': delay }));
 
 export const desktopIcons = [
-  { href: 'https://www.readcover.cn', style: { top: '24px', right: '24px' }, artClassName: 'dicon-art file ext-html', extension: '.app', label: 'ReadCover' },
-  { href: 'https://www.tongliaouniverse.cn', style: { top: '114px', right: '24px' }, artClassName: 'dicon-art file ext-html', extension: '.app', label: '通辽宇宙' },
-  { href: 'https://www.yunyanhua.top', style: { top: '204px', right: '24px' }, artClassName: 'dicon-art file ext-html', extension: '.app', label: '云上花火' },
-  { style: { top: '294px', right: '24px' }, artClassName: 'dicon-art folder', label: '收链 LinkBox' },
-  { style: { top: '384px', right: '24px' }, artClassName: 'dicon-art folder', label: '云锦人物志' },
-  { style: { top: '474px', right: '24px' }, artClassName: 'dicon-art folder', label: '亲友记 KinKeep' },
-  { win: 'win-sayhi', style: { top: '24px', right: '114px' }, artClassName: 'dicon-art folder', label: '关于 Hresh' },
-  { style: { top: '114px', right: '114px' }, artClassName: 'dicon-art folder', label: '组局记' },
-  { style: { top: '204px', right: '114px' }, artClassName: 'dicon-art folder', label: '素材取样器' },
-  { style: { top: '294px', right: '114px' }, artClassName: 'dicon-art folder', label: '宠物照护助手' },
-  { style: { top: '384px', right: '114px' }, artClassName: 'dicon-art folder', label: 'TabNest' },
-  { win: 'win-cola', style: { top: '474px', right: '114px' }, artClassName: 'dicon-art app-cola', image: { src: 'hresh-avatar-transparent.png', alt: 'Hresh赫什' }, label: '产品工作台' },
-  { win: 'win-website-history', style: { top: '24px', right: '204px' }, artClassName: 'dicon-art folder', label: '构建日志' },
+  // 首页是精选入口；完整项目档案集中在“产品”页，避免两处重复陈列。
+  { win: 'win-sayhi', style: { top: '24px', right: '24px' }, artClassName: 'dicon-art folder', label: '关于 Hresh' },
+  { href: 'https://www.zhihu.com/people/hao-an-kang', style: { top: '114px', right: '24px' }, artClassName: 'dicon-art file ext-html', extension: '.app', label: '知乎主页' },
+  { goto: 'works', style: { top: '204px', right: '24px' }, artClassName: 'dicon-art folder', label: '作品索引' },
+  { win: 'win-website-history', style: { top: '294px', right: '24px' }, artClassName: 'dicon-art folder', label: '构建日志' },
+  { href: 'https://space.bilibili.com/58333954', style: { top: '384px', right: '24px' }, artClassName: 'dicon-art file ext-html', extension: '.app', label: 'B站主页' },
+  { href: 'https://juejin.cn/user/2664871918047063', style: { top: '474px', right: '24px' }, artClassName: 'dicon-art file ext-html', extension: '.app', label: '掘金技术博客' },
+  { href: 'https://naturemuseum.top', featured: true, style: { top: '24px', right: '114px' }, artClassName: 'dicon-art file ext-html', extension: '.app', label: '儿童3D自然博物馆' },
+  { href: 'https://www.readcover.cn', style: { top: '114px', right: '114px' }, artClassName: 'dicon-art file ext-html', extension: '.app', label: 'ReadCover' },
+  { win: 'win-tongliao', featured: true, style: { top: '204px', right: '114px' }, artClassName: 'dicon-art file ext-html', extension: '.app', label: '通辽宇宙' },
+  { win: 'win-cola', style: { top: '294px', right: '114px' }, artClassName: 'dicon-art app-cola', image: { src: 'hresh-avatar-transparent.png', alt: 'Hresh赫什' }, label: '产品工作台' },
 ];
 
 export const workflowColumns = [
@@ -34,15 +32,19 @@ export const workflowColumns = [
   { title: 'DISTRIBUTE & LEARN', items: [['冷启动', '通过小红书、知乎、B站和公众号测试真实需求'], ['用户反馈', '观察使用、收集问题，再回到产品里修正假设'], ['持续迭代', 'build → document → distribute → feedback → rebuild']] },
 ];
 
+// 每个作品按实际交付方式维护入口：网站、源码、商店与小程序码可以并存；未确认的地址不写入数据。
 export const portfolioProducts = [
-  { name: '收链 / LinkBox', category: 'iOS · 效率工具', description: '本地优先的链接收纳与整理工具：先保存，之后再用标签、搜索、状态和清理流程找回资料。', status: '产品作品' },
-  { name: '云锦人物志', category: 'Web · AI 小说工作台', description: '把小说中的人物、别名、关系和衣着素材整理成可复核的角色资产，并支持图片管理与 EPUB 制作。', status: '产品作品' },
-  { name: 'ReadCover / 阅读掩护', category: 'Web/PWA · 阅读工具', description: '本地 TXT/EPUB 阅读器，加入 Word 风格伪装与快速保护控制，降低共享屏幕时的意外暴露。', status: '产品作品' },
-  { name: '通辽宇宙知识库', category: 'Web · 知识库', description: '围绕小约翰可汗内容建立的可搜索、互相链接的国家、人物、历史、组织、梗与 BGM 资料站。', status: '代表作品', href: 'https://www.tongliaouniverse.cn' },
-  { name: '亲友记 / KinKeep', category: 'iOS · 关系提醒', description: '面向小圈子关系维护的本地优先工具，用温和的时间感提醒记住重要的人，不做社交 KPI。', status: '产品作品' },
-  { name: '组局记 / Better Gathering', category: '微信小程序 · 聚会协作', description: '为熟人小群设计的聚会规划、协作记录、现场信息和回忆归档工具。', status: '产品作品' },
+  { name: '儿童 3D 自然博物馆', category: 'Web · 亲子自然探索', description: '面向孩子与家长的自然探索网站：从可旋转的 3D 主题开始，主动听短旁白、观察细节，再顺着问题一起聊下去。', status: '产品作品', links: [{ type: 'website', href: 'https://naturemuseum.top' }] },
+  { name: '读镜 / READFRAME', category: '桌面端 · 视频研究工作台', description: '本地优先的视频转写与研究工具：把音视频变成可校对、可回查、带时间点证据的内容研究材料。产品已完成，暂未公开上线。', status: '已完成 · 暂未上线' },
+  { name: 'B站评论范围采集器', category: 'Chrome 扩展 · 评论研究', description: '在用户设定的范围内采集 B站视频评论，保留本地搜索、研究筛选与 CSV 导出，帮助回查评论里的线索和争议。', status: '开源工具', links: [{ type: 'github', href: 'https://github.com/Acorn2/bilibili-comment-spider' }] },
+  { name: '收链 / LinkBox', category: 'iOS · 链接收纳工具', description: '用 iOS 分享面板先收住网页，再用标签、搜索、状态检测和整理页慢慢处理；支持把 Chrome 旧书签导入手机，本地保存并提供隐私模式。', status: '已上架', links: [{ type: 'store', href: 'https://apps.apple.com/cn/app/%E6%94%B6%E9%93%BE-%E7%BD%91%E5%9D%80%E6%94%B6%E7%BA%B3/id6770172058' }] },
+  { name: '云锦人物志', category: 'Web · AI 小说工作台', description: '把小说中的人物、别名、关系和衣着素材整理成可复核的角色资产，并支持图片管理与 EPUB 制作。产品已完成，但受服务器性能与持续成本限制，暂未公开上线。', status: '已完成 · 暂未上线', links: [{ type: 'article', href: 'https://zhuanlan.zhihu.com/p/2053590182176225236' }] },
+  { name: 'ReadCover / 阅读掩护', category: 'Web/PWA · 阅读工具', description: '本地 TXT/EPUB 阅读器，加入 Word 风格伪装与快速保护控制，降低共享屏幕时的意外暴露。', status: '产品作品', links: [{ type: 'website', href: 'https://www.readcover.cn' }] },
+  { name: '通辽宇宙知识库', category: 'Web · 知识库', description: '围绕小约翰可汗内容建立的可搜索、互相链接的国家、人物、历史、组织、梗与 BGM 资料站。', status: '代表作品', links: [{ type: 'website', href: 'https://www.tongliaouniverse.cn' }] },
+  { name: '亲友记 / KinKeep', category: 'iOS · 关系提醒', description: '为少量重要的朋友和家人留一个安静的联系提醒：用自然时间感记录状态，每次只提醒一位；默认本地保存，不读取通讯录和聊天记录。', status: '已上架', links: [{ type: 'store', href: 'https://apps.apple.com/us/app/kinkeep-contact-reminder/id6767982105' }] },
+  { name: '组局记 / Better Gathering', category: '微信小程序 · 聚会协作', description: '为熟人小群设计的聚会规划、协作记录、现场信息和回忆归档工具。', status: '产品作品', qr: { src: '/better-gathering-qr.jpg', searchHint: '微信搜索「组局记」' } },
   { name: '小红书素材取样器', category: 'Chrome · 内容工作台', description: '辅助人工收集小红书素材，再交给 Codex 做分析、选题生成和发布流程整理。', status: '工作流工具' },
-  { name: '宠物照护助手', category: '微信小程序 · 宠物记录', description: '记录喂养、体重、驱虫、疫苗、用药、花费和成长日记，支持多人共养与边界清晰的 AI 辅助观察。', status: '产品作品' },
-  { name: 'TabNest', category: 'Chrome 扩展 · 浏览器工作台', description: '本地优先的新标签页和标签管理器，按域名、窗口、书签和会话整理浏览上下文。', status: '产品作品' },
-  { name: '云上花火 / 云烟花', category: 'Web · 互动实验', description: '基于城市地图和 Canvas 粒子效果的线上烟花体验，支持城市选择、昵称烟花、云模式和截图导出。', status: '产品作品', href: 'https://www.yunyanhua.top' },
+  { name: '宠物照护助手', category: '微信小程序 · 宠物记录', description: '记录喂养、体重、驱虫、疫苗、用药、花费和成长日记，支持多人共养与边界清晰的 AI 辅助观察。', status: '产品作品', qr: { src: '/pets-care-assistant-qr.jpg', searchHint: '微信扫码打开小程序' } },
+  { name: 'TabNest', category: 'Chrome 扩展 · 浏览器工作台', description: '把 Chrome 新标签页变成能接住工作流的本地工作台：按域名和窗口整理当前标签，把高频书签、资料组合与可恢复会话分开安放。', status: '已上架', links: [{ type: 'website', href: 'https://www.hreshhao.org/tabnest/' }, { type: 'store', href: 'https://chromewebstore.google.com/detail/tabnest/oghchmagammlcniikanbgcebphcdogjf' }, { type: 'github', href: 'https://github.com/Acorn2/tab-next' }] },
+  { name: '云上花火 / 云烟花', category: 'Web · 互动实验', description: '基于城市地图和 Canvas 粒子效果的线上烟花体验，支持城市选择、昵称烟花、云模式和截图导出。', status: '产品作品', links: [{ type: 'website', href: 'https://www.yunyanhua.top' }] },
 ];

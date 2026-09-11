@@ -531,7 +531,9 @@ export function initializeSite() {
       document.addEventListener('pointerup', onUp);
     });
     icon.addEventListener('dblclick', function() {
-      if (icon.dataset.href) {
+      if (icon.dataset.goto) {
+        location.hash = icon.dataset.goto;
+      } else if (icon.dataset.href) {
         openIframeWindow(icon.dataset.href, icon.querySelector('.dicon-label').textContent);
       } else if (icon.dataset.win) {
         openWindow(icon.dataset.win);
@@ -822,6 +824,8 @@ export function initializeSite() {
   surface.addEventListener('click', function(e) {
     var closeAction = e.target.closest('[data-close-window]');
     if (closeAction) closeAction.closest('.os-window').remove();
+    var windowAction = e.target.closest('[data-win]');
+    if (windowAction && windowAction.closest('.os-window')) openWindow(windowAction.dataset.win);
   });
 
   // Folder icon dblclick → open iframe window on desktop

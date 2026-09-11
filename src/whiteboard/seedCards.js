@@ -48,7 +48,12 @@ export const seedCards = [
       sub: '用 AI 把想法做成产品的独立开发者',
       slogan: '从需求、设计到上线，持续实践产品',
       belief: '欢迎看看这些正在生长的作品。',
-      links: [],
+      links: [
+        {
+          label: '知乎主页 · 内容与问答 ↗',
+          href: 'https://www.zhihu.com/people/hao-an-kang',
+        },
+      ],
     },
     x: 303,
     y: 478,

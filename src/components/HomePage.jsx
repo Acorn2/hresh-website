@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   desktopIcons,
   wallpaperStars,
@@ -7,11 +8,12 @@ import {
 
 function DesktopIcon({ icon }) {
   return (
-    <div className="dicon" data-href={icon.href} data-win={icon.win} style={icon.style}>
+    <div className={`dicon${icon.featured ? ' is-featured' : ''}`} data-href={icon.href} data-win={icon.win} data-goto={icon.goto} style={icon.style}>
       <div className={icon.artClassName} data-ext={icon.extension}>
         {icon.image && <img src={icon.image.src} alt={icon.image.alt} loading="lazy" />}
         {icon.birthday && <span className="birthday-icon-mark">B</span>}
       </div>
+      {icon.featured && <span className="dicon-featured-mark">CORE</span>}
       <div className="dicon-label">{icon.label}</div>
     </div>
   );
@@ -67,11 +69,39 @@ function WindowTemplates() {
       </div>
 
       <div id="win-website-history" className="window-template" style={{ display: 'none' }}>
-        <div className="os-window" data-title="构建日志" data-url="hresh@workbench" style={{ width: '360px' }}>
-          <div className="os-body win-folder">
-            <FolderIcon href="#works" extension=".html" label="产品矩阵" />
-            <FolderIcon href="#system" extension=".html" label="产品工作台" />
-            <FolderIcon href="https://github.com/" extension=".git" label="代码与实验" />
+        <div className="os-window" data-title="构建日志 · 通辽宇宙" data-url="hresh@workbench" style={{ width: 'min(430px, 88vw)' }}>
+          <div className="os-body tlu-log">
+            <div className="tlu-log-kicker">BUILD LOG / 400+ DAYS</div>
+            <h2>通辽宇宙更新档案</h2>
+            <p>从资料回查工具，到持续生长的内容网络；每一轮更新都记录问题、反馈和最终落地。</p>
+            <div className="tlu-log-list">
+              <div><b>01</b><span>内容网络重构</span><small>地图、人物、历史、组织与视频串联</small></div>
+              <div><b>02</b><span>反馈驱动迭代</span><small>催更、梗反馈与进展页面</small></div>
+              <div><b>03</b><span>资料与体验补全</span><small>视频、热评、配乐与互动玩法</small></div>
+            </div>
+            <a className="win-link" href="https://www.zhihu.com/people/hao-an-kang" target="_blank" rel="noreferrer">在知乎阅读更新记录 ↗</a>
+          </div>
+        </div>
+      </div>
+
+      <div id="win-tongliao" className="window-template" style={{ display: 'none' }}>
+        <div className="os-window" data-title="通辽宇宙 · 核心产品" data-url="tongliaouniverse.cn" style={{ width: 'min(560px, 88vw)' }}>
+          <div className="os-body tlu-dossier">
+            <div className="tlu-dossier-head">
+              <span className="tlu-core-badge">CORE PRODUCT</span>
+              <span className="tlu-runtime">ONLINE · 400+ DAYS</span>
+            </div>
+            <h2>通辽宇宙知识库</h2>
+            <p className="tlu-lead">把小约翰可汗视频里零散、难回查的国家、人物、历史、组织与梗，重新织成一张可以持续逛下去的内容网络。</p>
+            <div className="tlu-principles">
+              <div><b>回查</b><span>从一句梗、一个人或一段历史，找回它来自哪里。</span></div>
+              <div><b>串联</b><span>让地图、人物、视频和时代背景沿着线索继续展开。</span></div>
+              <div><b>共建</b><span>把真实反馈公开跟进，让内容和体验一起慢慢长出来。</span></div>
+            </div>
+            <div className="tlu-dossier-foot">
+              <a className="win-link" href="https://www.tongliaouniverse.cn/" target="_blank" rel="noreferrer">打开核心产品 ↗</a>
+              <button className="tlu-log-link" data-win="win-website-history">查看构建日志 →</button>
+            </div>
           </div>
         </div>
       </div>
@@ -202,7 +232,32 @@ function HomeTab() {
   );
 }
 
+const accessLabels = {
+  website: '访问网站',
+  github: '查看源码',
+  store: '前往商店',
+  article: '阅读介绍',
+};
+
+function ProductAccess({ product, onShowQr }) {
+  const links = product.links || [];
+  const hasQr = Boolean(product.qr?.src);
+  const hasPendingQr = Boolean(product.qr && !product.qr.src);
+
+  if (!links.length && !hasQr && !hasPendingQr) {
+    return <span className="product-link muted">链接整理中</span>;
+  }
+
+  return <div className="product-access">
+    {links.map((link) => <a className={`product-link product-link-${link.type}`} href={link.href} target="_blank" rel="noreferrer" key={link.href}>{accessLabels[link.type] || '访问入口'} <span aria-hidden="true">↗</span></a>)}
+    {hasQr && <button className="product-link product-link-qr" type="button" onClick={() => onShowQr(product)}><span aria-hidden="true">▦</span> 扫码打开</button>}
+    {hasPendingQr && <span className="product-qr-pending"><span aria-hidden="true">▦</span> {product.qr.searchHint}</span>}
+  </div>;
+}
+
 function WorksTab() {
+  const [qrProduct, setQrProduct] = useState(null);
+
   return (
     <main className="tab-page" id="page-works">
       <div className="works-page">
@@ -215,8 +270,9 @@ function WorksTab() {
         </div>
         <div className="section-label" style={{ marginTop: '64px' }}>ls works/</div><h2 className="section-heading">作品集</h2>
         <div className="works-grid">
-          {portfolioProducts.map((product, index) => <div className="work-dim" key={product.name}><div className="dim-num">product_{String(index + 1).padStart(2, '0')}</div><h3>{product.name}</h3><div className="product-category">{product.category}</div><p className="dim-desc">{product.description}</p><div className="product-footer"><span className="product-status">{product.status}</span>{product.href ? <a className="dim-work-item product-link" href={product.href} target="_blank" rel="noreferrer">打开产品 ↗</a> : <span className="product-link muted">链接整理中</span>}</div></div>)}
+          {portfolioProducts.map((product, index) => <div className="work-dim" key={product.name}><div className="dim-num">product_{String(index + 1).padStart(2, '0')}</div><h3>{product.name}</h3><div className="product-category">{product.category}</div><p className="dim-desc">{product.description}</p><div className="product-footer"><span className="product-status">{product.status}</span><ProductAccess product={product} onShowQr={setQrProduct} /></div></div>)}
         </div>
+        {qrProduct && <div className="product-qr-overlay" role="presentation" onClick={() => setQrProduct(null)}><section className="product-qr-dialog" role="dialog" aria-modal="true" aria-label={`${qrProduct.name} 小程序码`} onClick={(event) => event.stopPropagation()}><button className="product-qr-close" type="button" aria-label="关闭二维码" onClick={() => setQrProduct(null)}>×</button><div className="product-qr-title">{qrProduct.name}</div><img src={qrProduct.qr.src} alt={`${qrProduct.name} 小程序码`} /><p>微信扫码或长按识别</p></section></div>}
       </div>
     </main>
   );

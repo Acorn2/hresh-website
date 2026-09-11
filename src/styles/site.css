@@ -411,6 +411,25 @@ body {
 }
 .dicon:hover { background: rgba(255,255,255,0.1); }
 .dicon:active { background: rgba(255,255,255,0.15); }
+.dicon.is-featured {
+  background: rgba(244,215,88,0.12);
+  box-shadow: inset 0 0 0 1px rgba(244,215,88,0.34), 0 0 22px rgba(244,215,88,0.14);
+}
+.dicon.is-featured:hover { background: rgba(244,215,88,0.2); }
+.dicon-featured-mark {
+  position: absolute;
+  top: 4px;
+  right: 3px;
+  z-index: 2;
+  padding: 2px 4px;
+  border-radius: 3px;
+  background: var(--yellow);
+  color: var(--blue-deep);
+  font-family: 'Fira Code', monospace;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
 .dicon img { pointer-events: none; }
 .dicon-label {
   font-family: 'Fira Code', monospace;
@@ -991,6 +1010,39 @@ body {
 }
 .win-link:hover { opacity: 0.85; }
 
+/* 通辽宇宙：旗舰产品档案与公开构建记录 */
+.os-body.tlu-dossier,
+.os-body.tlu-log {
+  background: var(--cream);
+  padding: 28px;
+}
+.tlu-dossier-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.tlu-core-badge,
+.tlu-runtime,
+.tlu-log-kicker {
+  font-family: 'Fira Code', monospace;
+  font-size: 10px;
+  letter-spacing: 0.07em;
+}
+.tlu-core-badge { color: var(--blue-deep); background: var(--yellow); padding: 5px 8px; border-radius: 3px; font-weight: 700; }
+.tlu-runtime,
+.tlu-log-kicker { color: var(--ink-faint); }
+.tlu-dossier h2,
+.tlu-log h2 { margin: 16px 0 7px; color: var(--blue-deep); font-family: 'Noto Serif SC', serif; font-size: 1.55rem; }
+.tlu-lead,
+.tlu-log > p { color: var(--ink-light); font-size: 13px; line-height: 1.75; }
+.tlu-principles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 20px 0; }
+.tlu-principles div { border: 1px dashed rgba(43,127,216,0.3); padding: 12px 10px; min-height: 105px; }
+.tlu-principles b { display: block; color: var(--blue); font-family: 'Caveat', cursive; font-size: 21px; margin-bottom: 4px; }
+.tlu-principles span { color: var(--ink-light); font-size: 11px; line-height: 1.55; }
+.tlu-dossier-foot { display: flex; align-items: center; gap: 14px; }
+.tlu-log-link { min-height: 44px; border: 0; background: transparent; color: var(--blue); font-family: 'Noto Sans SC', sans-serif; font-size: 12px; cursor: pointer; }
+.tlu-log-list { display: flex; flex-direction: column; gap: 7px; margin: 18px 0; }
+.tlu-log-list div { display: grid; grid-template-columns: 28px 1fr; column-gap: 8px; align-items: baseline; padding: 9px 10px; background: rgba(43,127,216,0.06); border-left: 2px solid var(--yellow); }
+.tlu-log-list b { grid-row: span 2; color: var(--blue); font-family: 'Fira Code', monospace; font-size: 11px; }
+.tlu-log-list span { color: var(--ink); font-size: 12px; font-weight: 700; }
+.tlu-log-list small { color: var(--ink-faint); font-size: 11px; line-height: 1.5; }
+
 .desktop-surface .scroll-on-hint {
   position: absolute;
   bottom: 6px; left: 0; right: 0;
@@ -1457,7 +1509,7 @@ body {
 }
 .product-footer {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
   margin-top: 18px;
@@ -1470,8 +1522,33 @@ body {
   padding: 6px 9px;
   white-space: nowrap;
 }
-.product-link { margin: 0; padding: 7px 9px; white-space: nowrap; }
-.product-link.muted { font-size: 12px; color: var(--ink-faint); }
+.product-access { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.product-link {
+  margin: 0;
+  padding: 7px 9px;
+  border: 1px solid rgba(43,127,216,0.16);
+  border-radius: 7px;
+  background: rgba(43,127,216,0.05);
+  color: var(--blue);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+.product-link:hover { background: rgba(43,127,216,0.12); border-color: rgba(43,127,216,0.34); transform: translateY(-1px); }
+.product-link.muted { padding: 0; border: 0; background: transparent; color: var(--ink-faint); cursor: default; font-size: 12px; }
+.product-link.muted:hover { border: 0; background: transparent; transform: none; }
+.product-qr-pending { align-self: center; color: var(--ink-faint); font-size: 12px; white-space: nowrap; }
+.product-qr-overlay { position: fixed; z-index: 1000; inset: 0; display: grid; place-items: center; padding: 24px; background: rgba(26,26,46,0.42); backdrop-filter: blur(5px); }
+.product-qr-dialog { position: relative; width: min(100%, 330px); padding: 28px; border-radius: 18px; background: #fffdf8; box-shadow: 0 24px 80px rgba(26,26,46,0.3); text-align: center; }
+.product-qr-title { margin-bottom: 16px; color: var(--ink); font-family: 'Noto Serif SC', serif; font-weight: 700; font-size: 1.05rem; }
+.product-qr-dialog img { display: block; width: min(100%, 250px); aspect-ratio: 1; margin: 0 auto; object-fit: contain; }
+.product-qr-dialog p { margin: 14px 0 0; color: var(--ink-light); font-size: 13px; }
+.product-qr-close { position: absolute; top: 8px; right: 10px; width: 36px; height: 36px; border: 0; border-radius: 50%; background: transparent; color: var(--ink-light); font-size: 24px; line-height: 1; cursor: pointer; }
+.product-qr-close:hover { background: var(--cream); color: var(--ink); }
 
 /* ============================================
    TAB 3: CANVAS (iframe)
@@ -1536,7 +1613,9 @@ body {
   .works-grid { grid-template-columns: 1fr; margin-top: 24px; }
   .work-dim { min-height: 0; padding: 24px 20px; }
   .product-footer { align-items: flex-start; flex-direction: column; }
+  .product-access { justify-content: flex-start; }
   .product-link { min-height: 44px; box-sizing: border-box; }
+  .product-link.muted { min-height: 0; }
 
   /* Desktop metaphor on small screens */
   .desktop-character {
@@ -1556,6 +1635,13 @@ body {
   .dicon { width: 68px; }
   .dicon-art { width: 42px; height: 42px; }
   .dicon-label { font-size: 10px; }
+  .os-body.tlu-dossier,
+  .os-body.tlu-log { padding: 20px; }
+  .tlu-principles { grid-template-columns: 1fr; gap: 6px; margin: 14px 0; }
+  .tlu-principles div { min-height: 0; }
+  .tlu-dossier-foot { align-items: stretch; flex-direction: column; gap: 4px; }
+  .tlu-dossier-foot .win-link,
+  .tlu-log-link { width: 100%; text-align: center; }
   .win-sayhi .services-grid { grid-template-columns: 1fr; }
   .os-body.win-sayhi { padding: 28px 20px; }
 }
