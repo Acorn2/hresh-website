@@ -6,7 +6,7 @@ import {
   portfolioProducts,
 } from './homeData';
 
-const wallpaperStarGlyphs = ['✦', '·', '✧', '◆', '✣', '✦', '·', '✧'];
+const wallpaperStarGlyphs = ['·', '·', '·', '·', '✦', '·', '·', '·'];
 
 function DesktopIcon({ icon }) {
   return (
@@ -204,6 +204,7 @@ function HomeTab() {
         </nav>
       </header>
       <section className="hero-section" id="heroSection">
+        <button className="intro-skip" id="introSkip" type="button">进入工作舱 <span aria-hidden="true">↗</span></button>
         <div className="macbook-wrapper" id="macbookWrapper">
           <div className="macbook-screen-bezel" id="macbookBezel">
             <div className="macbook-notch"></div>
@@ -217,9 +218,15 @@ function HomeTab() {
       <div className="desktop" id="desktop">
         <div className="desktop-menubar"><span className="mb-logo">Hresh OS</span><span className="mb-item">About</span><span className="mb-item">Values</span><span className="mb-item">Now</span><span className="mb-clock" id="mbClock">--:--</span></div>
         <div className="desktop-surface" id="desktopSurface">
+          <div className="desktop-intro">
+            <p className="desktop-eyebrow">INDEPENDENT DEVELOPER / AI BUILDER</p>
+            <h1>Hresh<span>赫什</span><span className="identity-dot" aria-hidden="true">.</span></h1>
+            <p className="desktop-tagline">用 AI 把想法做成产品。</p>
+            <a className="desktop-works-link" href="#works">探索我的作品 <span aria-hidden="true">↗</span></a>
+          </div>
           {wallpaperStars.map((style, index) => {
             const glyphIndex = index % wallpaperStarGlyphs.length;
-            return <span key={index} className={`wp-star wp-star-${glyphIndex}`} style={style}>{wallpaperStarGlyphs[glyphIndex]}</span>;
+            return <span key={index} className={`wp-star wp-star-${glyphIndex}`} style={style} aria-hidden="true">{wallpaperStarGlyphs[glyphIndex]}</span>;
           })}
           <div className="desktop-character desktop-character-person" data-character="person" role="img" aria-label="Hresh赫什正在向柯基招手">
             <img id="desktopCharacterPerson" src="/hresh-animation-person-idle.png" alt="" loading="eager" />

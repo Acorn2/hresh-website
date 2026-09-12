@@ -189,11 +189,12 @@ export function initializeSite() {
       else if (item.type === 'cmd') { lineDelay += 400; div.style.animationDelay = lineDelay + 'ms'; lineDelay += 600; }
       else if (item.type === 'output') { lineDelay += 150; div.style.animationDelay = lineDelay + 'ms'; lineDelay += 300; }
       else if (item.type === 'gold') { lineDelay += 150; div.style.animationDelay = lineDelay + 'ms'; lineDelay += 400; }
+      div.style.animationDelay = (parseFloat(div.style.animationDelay || '0') * 0.22) + 'ms';
       divs.push(div);
       setTimeout(function() { div.classList.add('visible'); }, 50);
     });
 
-    var typingTimeout = setTimeout(finishIntro, lineDelay + 600);
+    var typingTimeout = setTimeout(finishIntro, lineDelay * 0.22 + 200);
 
     var skipTyping = function() {
       if (typingDone) return;
@@ -231,7 +232,7 @@ export function initializeSite() {
 
     var progressLine = document.createElement('div');
     progressLine.className = 'term-line';
-    progressLine.innerHTML = '<span class="term-prompt" id="progressText">[░░░░░░░░░░░░] 0%</span>';
+    progressLine.innerHTML = '<span class="term-progress"><span class="term-progress-track"><span class="term-progress-fill" id="progressFill"></span></span><span id="progressText">0%</span></span>';
     container.appendChild(progressLine);
     setTimeout(function() { progressLine.classList.add('visible'); }, 300);
 
@@ -239,6 +240,7 @@ export function initializeSite() {
     var barLength = 12;
     setTimeout(function() {
       var progressText = document.getElementById('progressText');
+      var progressFill = document.getElementById('progressFill');
       var interval = setInterval(function() {
         progress += 1;
         if (progress > barLength) {
@@ -246,12 +248,9 @@ export function initializeSite() {
           beginZoom();
           return;
         }
-        var filled = '', empty = '';
-        for (var i = 0; i < barLength; i++) {
-          if (i < progress) filled += '█'; else empty += '░';
-        }
         var pct = Math.round((progress / barLength) * 100);
-        if (progressText) progressText.textContent = '[' + filled + empty + '] ' + pct + '%';
+        if (progressText) progressText.textContent = pct + '%';
+        if (progressFill) progressFill.style.width = pct + '%';
       }, 80);
     }, 500);
   }
@@ -261,6 +260,14 @@ export function initializeSite() {
     var screen = document.getElementById('macbookScreen');
     var terminal = document.getElementById('terminal');
     var overlay = document.getElementById('transitionOverlay');
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.getElementById('heroSection').style.display = 'none';
+      document.getElementById('desktop').classList.add('entered');
+      applyScrollLock();
+      window.scrollTo(0, 0);
+      if (characterStory) characterStory.prime();
+      return;
+    }
 
     var screenRect = screen.getBoundingClientRect();
     var vw = window.innerWidth, vh = window.innerHeight;
@@ -294,13 +301,21 @@ export function initializeSite() {
       window.scrollTo(0, 0);
       setTimeout(function() {
         overlay.classList.remove('active');
+        document.getElementById('desktop').classList.add('entered');
         if (characterStory) characterStory.prime();
       }, 250);
     }, 1800);
   }
 
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && !launched) launch();
+    if (e.key === 'Enter' && !launched && currentTab() === 'home') {
+      if (!typingDone && skipTyping) skipTyping();
+      launch();
+    }
+  });
+  document.getElementById('introSkip').addEventListener('click', function() {
+    if (!typingDone && skipTyping) skipTyping();
+    launch();
   });
   document.getElementById('macbookBezel').addEventListener('click', function() {
     if (typingDone) launch();
@@ -655,6 +670,14 @@ export function initializeSite() {
       corgi.classList.add('is-settled');
       setFrame(personImage, personFrames.idle);
       setFrame(corgiImage, corgiFrames.sit);
+      if (!reducedMotion.matches) {
+        setTimeout(function() {
+          if (state === 'idle') setFrame(personImage, personFrames.wave);
+        }, 900);
+        setTimeout(function() {
+          if (state === 'idle') setFrame(personImage, personFrames.idle);
+        }, 1500);
+      }
     }
 
     function begin(now) {
@@ -885,7 +908,7 @@ export function initializeSite() {
     // Click to spawn a star
     surface.addEventListener('click', function(e) {
       // Don't spawn on icon/window interactions
-      if (e.target.closest('.dicon, .os-window, .desktop-character')) return;
+      if (e.target.closest('.dicon, .os-window, .desktop-character, .desktop-intro')) return;
       var star = document.createElement('span');
       star.className = 'click-star';
       star.textContent = '\u2726';
@@ -909,8 +932,6 @@ export function initializeSite() {
   var exitStickyEl = document.getElementById('exitSticky');
 
   var isMobile = window.innerWidth <= 768;
-  var screenW = isMobile ? 348 : 680;
-  var screenH = isMobile ? 260 : 440;
 
   function easeInOutCubic(t) {
     return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -934,25 +955,28 @@ export function initializeSite() {
 
       var progress = Math.max(0, Math.min(1, scrolled / scrollableDistance));
 
-      // Phase 1: 0 → 0.5 - MacBook scales down from full-screen to normal
+      // Phase 1: the full-screen desktop scales down into a normal MacBook.
       var p1 = Math.min(1, progress / 0.5);
       var ep = easeInOutCubic(p1);
       exitMacbook.style.opacity = 1;
+      var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var screenW = exitScreenEl.clientWidth || (isMobile ? 348 : 680);
+      var screenH = exitScreenEl.clientHeight || (isMobile ? 260 : 440);
       var baseScale = Math.max(window.innerWidth / screenW, vh / screenH) * 1.05;
-      var macScale = baseScale - (baseScale - 1) * ep;
+      var macScale = reducedMotion ? 1 : baseScale - (baseScale - 1) * ep;
       exitMacbook.style.transform = 'scale(' + macScale + ')';
 
-      // Phase 2: 0.3 → 0.6 - goodbye screen fades in
+      // Phase 2: reveal the goodbye terminal after the desktop has started shrinking.
       if (progress >= 0.3) {
         var p2 = Math.min(1, (progress - 0.3) / 0.3);
         goodbyeScreen.classList.add('visible');
-        goodbyeScreen.style.opacity = easeInOutCubic(p2);
+        goodbyeScreen.style.opacity = reducedMotion ? 1 : easeInOutCubic(p2);
       } else {
         goodbyeScreen.classList.remove('visible');
         goodbyeScreen.style.opacity = 0;
       }
 
-      // Phase 3: 0.6 → 1 - settled
+      // Phase 3: settle at the final terminal size.
       if (progress >= 0.6) {
         exitMacbook.style.transform = 'scale(1)';
         goodbyeScreen.style.opacity = 1;
@@ -964,8 +988,7 @@ export function initializeSite() {
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', function() {
     isMobile = window.innerWidth <= 768;
-    screenW = isMobile ? 348 : 680;
-    screenH = isMobile ? 260 : 440;
+    onScroll();
   });
 
   /* ============================================
@@ -978,22 +1001,23 @@ export function initializeSite() {
     goodbyeScreen.style.transition = 'opacity 0.6s ease';
     goodbyeScreen.style.opacity = '0';
     exitScreenEl.style.transition = 'background 0.6s ease';
-    exitScreenEl.style.background = '#2B7FD8';
+    exitScreenEl.style.background = 'var(--term-bg)';
 
     setTimeout(function() {
       var termArea = document.createElement('div');
       termArea.id = 'loopTerminal';
-      termArea.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;background:#2B7FD8;padding:16px 20px;font-family:"Fira Code",monospace;font-size:13px;line-height:1.7;color:rgba(255,255,255,0.9);overflow:hidden;z-index:10;';
+      termArea.className = 'terminal';
+      termArea.style.cssText = 'position:absolute;inset:0;background:var(--term-bg);color:var(--night-text);z-index:10;';
 
       var titlebar = document.createElement('div');
-      titlebar.style.cssText = 'display:flex;align-items:center;gap:7px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.15);margin-bottom:14px;';
-      ['#ff5f57','#ffbd2e','#28ca41'].forEach(function(c) {
+      titlebar.className = 'terminal-titlebar';
+      ['red','yellow','green'].forEach(function(c) {
         var dot = document.createElement('span');
-        dot.style.cssText = 'width:10px;height:10px;border-radius:50%;background:' + c + ';';
+        dot.className = 'terminal-dot ' + c;
         titlebar.appendChild(dot);
       });
       var titleText = document.createElement('span');
-      titleText.style.cssText = 'color:rgba(255,255,255,0.5);font-size:11px;margin-left:auto;margin-right:auto;font-family:sans-serif;';
+      titleText.className = 'terminal-title';
       titleText.textContent = 'hresh@workbench ~ zsh';
       titlebar.appendChild(titleText);
       termArea.appendChild(titlebar);
@@ -1011,15 +1035,15 @@ export function initializeSite() {
         div.style.cssText = 'white-space:pre-wrap;opacity:0;transform:translateY(6px);transition:opacity 0.3s ease,transform 0.3s ease;';
         if (item.type === 'blank') { div.innerHTML = '&nbsp;'; lineDelay += 200; }
         else if (item.type === 'cmd') {
-          var html = '<span style="color:#F4D758;font-weight:700">' + item.prompt + '</span><span style="color:#fff;font-weight:500">' + item.text + '</span>';
-          if (item.cursor) html += '<span style="display:inline-block;width:9px;height:17px;background:#fff;vertical-align:middle;margin-left:2px;animation:blink 1s step-end infinite" id="loopCursor"></span>';
+          var html = '<span class="term-prompt">' + item.prompt + '</span><span class="term-cmd">' + item.text + '</span>';
+          if (item.cursor) html += '<span class="cursor" id="loopCursor"></span>';
           div.innerHTML = html;
           lineDelay += 400;
         } else if (item.type === 'output') {
-          div.innerHTML = '<span style="color:rgba(255,255,255,0.85)">' + item.prefix + item.text + '</span>';
+          div.innerHTML = '<span class="term-output">' + item.prefix + item.text + '</span>';
           lineDelay += 150;
         } else if (item.type === 'gold') {
-          div.innerHTML = '<span style="background:#F4D758;color:#1E5BA8;font-weight:700;font-size:13px;padding:1px 6px;border-radius:3px">' + item.prefix + item.text + '</span>';
+          div.innerHTML = '<span class="term-gold">' + item.prefix + item.text + '</span>';
           lineDelay += 150;
         }
         termLines.appendChild(div);
@@ -1034,7 +1058,7 @@ export function initializeSite() {
       setTimeout(function() {
         loopTypingDone = true;
         var hint = document.createElement('div');
-        hint.style.cssText = 'text-align:center;margin-top:16px;font-size:11px;color:rgba(30,91,168,0.5);opacity:0;transition:opacity 0.5s ease;';
+        hint.style.cssText = 'text-align:center;margin-top:16px;font-size:11px;color:var(--night-muted);opacity:0;transition:opacity 0.5s ease;';
         hint.textContent = 'press enter to launch ↵';
         termLines.appendChild(hint);
         setTimeout(function() { hint.style.opacity = '1'; }, 100);
@@ -1058,7 +1082,7 @@ export function initializeSite() {
 
         var launchLine = document.createElement('div');
         launchLine.style.cssText = 'white-space:pre-wrap;opacity:0;transition:opacity 0.3s ease;';
-        launchLine.innerHTML = '<span style="color:#2B7FD8">> launching...</span>';
+        launchLine.innerHTML = '<span class="term-prompt">> launching...</span>';
         termLines.appendChild(launchLine);
         setTimeout(function() { launchLine.style.opacity = '1'; }, 50);
 
@@ -1123,16 +1147,6 @@ export function initializeSite() {
     e.preventDefault();
     triggerLoop();
   });
-
-  // Auto-trigger loop when user keeps scrolling at the very bottom
-  var lastScrollY = 0;
-  window.addEventListener('scroll', function() {
-    if (!launched || looping || currentTab() !== 'home') return;
-    var currentY = window.scrollY || window.pageYOffset;
-    var maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-    if (currentY >= maxScroll - 50 && currentY > lastScrollY) triggerLoop();
-    lastScrollY = currentY;
-  }, { passive: true });
 
   // Init
   switchTab(currentTab());
