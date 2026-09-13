@@ -81,6 +81,17 @@ function buildLocalCards() {
   return [...seeds, ...loadLocalCards()];
 }
 
+const seedIds = new Set(seedCards.map((seed) => seed.id));
+
+// 远程数据库尚未完成首次播种时，先展示代码内的默认卡片，避免白板首屏为空。
+// 一旦数据库已有对应种子卡，优先使用数据库版本；访客创建的卡片照常追加。
+function buildRemoteCards(cardRows) {
+  const remoteById = new Map(cardRows.map((card) => [card.id, card]));
+  const seeds = seedCards.map((seed) => remoteById.get(seed.id) || seed);
+  const visitorCards = cardRows.filter((card) => !seedIds.has(card.id));
+  return [...seeds, ...visitorCards];
+}
+
 export default function WhiteboardApp() {
   const localToken = React.useMemo(getMyToken, []);
   const [remote, setRemote] = React.useState(null); // { uid, isAdmin }，连接成功后才有
@@ -320,12 +331,26 @@ export default function WhiteboardApp() {
         votesRef.current = voteRows;
         const isAdm = admins.includes(uid);
         setRemote({ uid, isAdmin: isAdm });
-        setCards(mergeVotes(cardRows, voteRows));
+        setCards(mergeVotes(buildRemoteCards(cardRows), voteRows));
         setStrokes(strokeRows);
         dispose = subscribeRemote({
           onCard: (p) => {
             if (p.eventType === 'DELETE') {
-              setCards((prev) => prev.filter((c) => c.id !== p.old.id));
+              if (seedIds.has(p.old.id)) {
+                const fallback = seedCards.find((seed) => seed.id === p.old.id);
+                if (fallback) {
+                  setCards((prev) =>
+                    mergeVotes(
+                      prev.some((c) => c.id === fallback.id)
+                        ? prev.map((c) => (c.id === fallback.id ? fallback : c))
+                        : [...prev, fallback],
+                      votesRef.current
+                    )
+                  );
+                }
+              } else {
+                setCards((prev) => prev.filter((c) => c.id !== p.old.id));
+              }
               return;
             }
             if (p.eventType === 'UPDATE' && isOwnEcho(p.new.id)) return; // 忽略自己的回广播
@@ -367,9 +392,11 @@ export default function WhiteboardApp() {
           },
         });
         flashStatus('已连接产品工作台 🌐 内容实时同步');
-        // 数据库还没有预制卡：管理员首次到访时把代码里的种子卡种进去
-        if (isAdm && !cardRows.some((c) => c.kind === 'seed')) {
-          const seeds = seedCards.map((s) => ({
+        // 数据库缺少预制卡时，管理员首次到访时只补齐缺失的种子卡。
+        // 普通访客已经通过 buildRemoteCards 看到默认卡片，不会再出现空白白板。
+        const missingSeeds = seedCards.filter((seed) => !cardRows.some((card) => card.id === seed.id));
+        if (isAdm && missingSeeds.length) {
+          const seeds = missingSeeds.map((s) => ({
             ...s,
             owner: uid,
             data: s.data?.options

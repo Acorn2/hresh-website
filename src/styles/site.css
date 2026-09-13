@@ -1680,6 +1680,8 @@ body {
   text-align: center;
   border-top: 1px solid var(--term-border);
 }
+.goodbye-footer a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.goodbye-footer a:hover { color: var(--term-accent); }
 
 /* Loop hint below exit macbook */
 .back-to-top {

@@ -276,7 +276,17 @@ function HomeTab() {
                 <div className="gt-line"><span className="gt-prompt">$ </span><span className="gt-cmd">fortune</span></div><div className="gt-line gt-dim">“找到你喜欢的事，然后让它杀死你。” — Bukowski</div><div className="gt-line">&nbsp;</div>
                 <div className="gt-line"><span className="gt-prompt">$ </span><span className="gt-cmd">exit</span></div><div className="gt-line gt-output"><span className="gt-gold">[Process completed]</span></div>
               </div></div>
-              <div className="goodbye-footer">© 2026 Hresh赫什 · Built with AI &amp; attitude</div>
+              <div className="goodbye-footer">
+                <span>© 2026 Hresh赫什 · Built with AI &amp; attitude</span>
+                <span aria-hidden="true"> · </span>
+                <a href="https://github.com/esthersjw/esther-design-system" target="_blank" rel="noreferrer noopener">
+                  参考 Esther Design System，已二次开发 ↗
+                </a>
+                <span aria-hidden="true"> · </span>
+                <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer noopener">
+                  CC BY-NC-SA 4.0 ↗
+                </a>
+              </div>
             </div></div></div>
             <div className="exit-hinge"></div><div className="exit-base"></div><div className="exit-shadow"></div>
           </div>
