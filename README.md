@@ -23,7 +23,7 @@ npm run build
 - `src/styles/site.css`: Homepage styles and animation definitions.
 - `src/lib/siteController.js`: Homepage interaction controller: tabs, terminal launch, desktop windows, canvas loading, pointer interactions, and exit loop.
 - `src/whiteboard/`: 本地优先的产品工作台白板。
-- `public/`: 静态资源；`hresh-avatar-transparent.png` 是网站使用的透明个人 IP 头像，`hresh-avatar.png` 保留为原始母版。
+- `public/`: 当前首页、产品工作台、作品集和 Skills 使用的静态资源。
 
 ## Updating The Homepage
 

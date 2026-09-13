@@ -20,6 +20,9 @@ function staticDirectoryIndex() {
 }
 
 export default defineConfig({
+  server: {
+    port: 5171,
+  },
   plugins: [staticDirectoryIndex()],
   build: {
     rollupOptions: {

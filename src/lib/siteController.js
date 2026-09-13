@@ -384,23 +384,10 @@ export function initializeSite() {
 
     var closeBtn = traffic.querySelector('.tl-close');
 
-    // Cascade position (Cola window centered, others cascade)
+    // Center local windows in the usable desktop area, leaving the right-side
+    // icon shelf clear, then cascade subsequent windows from that position.
     var isSmall = window.innerWidth <= 768;
-    var isCola = win.classList.contains('cola-window');
-    if (isCola) {
-      var surfW = surface.offsetWidth || window.innerWidth;
-      var surfH = surface.offsetHeight || window.innerHeight;
-      var winW = Math.min(720, surfW * 0.92);
-      var winH = Math.min(560, surfH * 0.78);
-      win.style.left = Math.max(8, (surfW - winW) / 2) + 'px';
-      win.style.top = Math.max(8, (surfH - winH) / 2 - 20) + 'px';
-    } else {
-      var baseX = isSmall ? 12 : 150;
-      var baseY = isSmall ? 60 : 60;
-      var offset = (openCount % 5) * (isSmall ? 16 : 36);
-      win.style.left = (baseX + offset) + 'px';
-      win.style.top = (baseY + offset) + 'px';
-    }
+    var offset = (openCount % 5) * (isSmall ? 16 : 36);
     win.style.zIndex = ++winZ;
     openCount++;
 
@@ -437,6 +424,17 @@ export function initializeSite() {
 
     addResize(win);
     surface.appendChild(win);
+
+    var surfW = surface.clientWidth || window.innerWidth;
+    var surfH = surface.clientHeight || window.innerHeight;
+    var winW = win.offsetWidth;
+    var winH = win.offsetHeight;
+    var rightShelf = isSmall ? 12 : 190;
+    var usableW = Math.max(320, surfW - rightShelf);
+    var baseX = isSmall ? 12 : Math.max(24, (usableW - winW) / 2);
+    var baseY = isSmall ? 60 : Math.max(60, (surfH - winH) / 2 - 40);
+    win.style.left = Math.max(8, baseX + offset) + 'px';
+    win.style.top = Math.max(8, baseY + offset) + 'px';
   }
 
   function openIframeWindow(url, title) {
@@ -506,7 +504,7 @@ export function initializeSite() {
     extBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
     extBtn.addEventListener('click', function(e) {
       e.stopPropagation();
-      window.open(url, '_blank');
+      window.open(url, '_blank', 'noopener,noreferrer');
     });
     win.appendChild(extBtn);
 
@@ -514,90 +512,163 @@ export function initializeSite() {
     surface.appendChild(win);
   }
 
-  // Make icons draggable + clickable (macOS style)
-  surface.querySelectorAll('.dicon').forEach(function(icon) {
-    var wasDragged = false;
-    icon.addEventListener('pointerdown', function(e) {
-      if (e.button !== 0) return;
-      e.preventDefault();
-      wasDragged = false;
-      var startX = e.clientX, startY = e.clientY;
-      // Convert right-positioned to left-positioned
-      var rect = icon.getBoundingClientRect();
-      var surfRect = surface.getBoundingClientRect();
-      var origX = rect.left - surfRect.left;
-      var origY = rect.top - surfRect.top;
-      icon.style.right = 'auto';
-      icon.style.left = origX + 'px';
-      icon.style.top = origY + 'px';
-
-      function onMove(ev) {
-        var dx = ev.clientX - startX;
-        var dy = ev.clientY - startY;
-        if (Math.abs(dx) > 4 || Math.abs(dy) > 4) wasDragged = true;
-        icon.style.left = (origX + dx) + 'px';
-        icon.style.top = (origY + dy) + 'px';
-      }
-      function onUp() {
-        document.removeEventListener('pointermove', onMove);
-        document.removeEventListener('pointerup', onUp);
-      }
-      document.addEventListener('pointermove', onMove);
-      document.addEventListener('pointerup', onUp);
+  function openLinkDossier(url, title, category, summary, actionLabel) {
+    var existing = Array.from(surface.querySelectorAll('.os-window[data-link-dossier]')).find(function(windowEl) {
+      return windowEl.dataset.linkDossier === url;
     });
-    icon.addEventListener('dblclick', function() {
+    if (existing) { existing.style.zIndex = ++winZ; existing.focus(); return; }
+
+    var win = document.createElement('section');
+    win.className = 'os-window os-link-dossier';
+    win.dataset.linkDossier = url;
+    win.tabIndex = -1;
+
+    var dragbar = document.createElement('div');
+    dragbar.className = 'os-dragbar';
+    var traffic = document.createElement('div');
+    traffic.className = 'os-traffic';
+    traffic.innerHTML = '<button class="tl-close" type="button" aria-label="关闭窗口"></button>';
+    var body = document.createElement('div');
+    body.className = 'os-body link-dossier-body';
+    var kicker = document.createElement('p');
+    kicker.className = 'link-dossier-kicker';
+    kicker.textContent = category || 'PUBLIC LINK';
+    var heading = document.createElement('h2');
+    heading.textContent = title;
+    var description = document.createElement('p');
+    description.className = 'link-dossier-summary';
+    description.textContent = summary || '这是一个公开入口。你可以先在这里了解它，再在新标签页继续访问。';
+    var notice = document.createElement('p');
+    notice.className = 'link-dossier-notice';
+    notice.textContent = '将在新标签页打开，不会中断当前的浏览位置。';
+    var action = document.createElement('a');
+    action.className = 'win-link link-dossier-action';
+    action.href = url;
+    action.target = '_blank';
+    action.rel = 'noreferrer';
+    action.textContent = (actionLabel || '打开入口') + ' ↗';
+    body.append(kicker, heading, description, action, notice);
+    win.append(dragbar, traffic, body);
+
+    var isSmall = window.innerWidth <= 768;
+    var surfW = surface.offsetWidth || window.innerWidth;
+    var surfH = surface.offsetHeight || window.innerHeight;
+    var winW = Math.min(480, surfW * 0.9);
+    win.style.width = winW + 'px';
+    win.style.left = Math.max(8, (surfW - winW) / 2 + (openCount % 3) * 24) + 'px';
+    win.style.top = Math.max(8, (surfH - 320) / 2 + (isSmall ? 0 : (openCount % 3) * 20)) + 'px';
+    win.style.zIndex = ++winZ;
+    openCount++;
+
+    traffic.querySelector('.tl-close').addEventListener('click', function(e) { e.stopPropagation(); win.remove(); });
+    win.addEventListener('pointerdown', function() { win.style.zIndex = ++winZ; });
+    dragbar.addEventListener('pointerdown', function(e) {
+      e.preventDefault();
+      var startX = e.clientX, startY = e.clientY, origX = win.offsetLeft, origY = win.offsetTop;
+      function onMove(ev) { win.style.left = (origX + ev.clientX - startX) + 'px'; win.style.top = (origY + ev.clientY - startY) + 'px'; }
+      function onUp() { document.removeEventListener('pointermove', onMove); document.removeEventListener('pointerup', onUp); }
+      document.addEventListener('pointermove', onMove); document.addEventListener('pointerup', onUp);
+    });
+    addResize(win);
+    surface.appendChild(win);
+    win.focus();
+  }
+
+  // A portfolio is explored with one click. Dragging was removed because it made the primary action ambiguous, especially on touch screens.
+  surface.querySelectorAll('.dicon').forEach(function(icon) {
+    icon.addEventListener('click', function() {
       if (icon.dataset.goto) {
         location.hash = icon.dataset.goto;
       } else if (icon.dataset.href) {
-        openIframeWindow(icon.dataset.href, icon.querySelector('.dicon-label').textContent);
+        openLinkDossier(icon.dataset.href, icon.querySelector('.dicon-label').textContent, icon.dataset.category, icon.dataset.summary, icon.dataset.actionLabel);
       } else if (icon.dataset.win) {
         openWindow(icon.dataset.win);
       }
     });
   });
 
+  document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Escape') return;
+    var windows = surface.querySelectorAll('.os-window');
+    var topWindow = Array.from(windows).sort(function(a, b) { return Number(b.style.zIndex || 0) - Number(a.style.zIndex || 0); })[0];
+    if (topWindow) topWindow.remove();
+  });
+
   /* ============================================
-     CHARACTER STORY: hover/tap-triggered wave → run → sit
+     CHARACTER STORY: a small call-and-response between Hresh and the corgi.
      ============================================ */
   var characterStory = (function() {
     var person = surface.querySelector('[data-character="person"]');
     var corgi = surface.querySelector('[data-character="corgi"]');
+    var greetingTrigger = surface.querySelector('[data-character-trigger]');
+    var greetingLabel = greetingTrigger && greetingTrigger.querySelector('.character-greeting-label');
     var personImage = document.getElementById('desktopCharacterPerson');
     var corgiImage = document.getElementById('desktopCharacterCorgi');
     var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     var personFrames = {
       idle: '/hresh-animation-person-idle.png',
       wave: '/hresh-animation-person-wave.png',
-      return: '/hresh-animation-person-return.png'
+      return: '/hresh-animation-person-return.png',
+      greet: '/hresh-animation-person-greet.png'
     };
     var corgiFrames = {
       sit: '/hresh-animation-corgi-sit.png',
+      arrive: '/hresh-animation-corgi-arrive.png',
       run: [
         '/hresh-animation-corgi-run-1.png',
         '/hresh-animation-corgi-run-2.png',
         '/hresh-animation-corgi-run-3.png'
       ]
     };
-    var state = 'idle'; // idle | running | settled
+    var state = 'idle'; // idle | running | settled | returning
     var paused = false;
     var frameId = null;
     var cycleStartedAt = 0;
     var pausedElapsed = 0;
     var corgiStart = null;
     var corgiTarget = null;
+    var sceneOrigin = null;
+    var returnStart = null;
     var armed = true;
     var hoverTimer = null;
-    var pointerPressed = false;
 
-    if (!person || !corgi || !personImage || !corgiImage) return null;
+    if (!person || !corgi || !personImage || !corgiImage || !greetingTrigger || !greetingLabel) return null;
 
-    Object.values(personFrames).concat(corgiFrames.run, corgiFrames.sit).forEach(function(src) {
+    Object.values(personFrames).concat(corgiFrames.run, corgiFrames.sit, corgiFrames.arrive).forEach(function(src) {
       var image = new Image();
       image.src = src;
     });
 
     function setFrame(image, source) {
       if (image.getAttribute('src') !== source) image.setAttribute('src', source);
+    }
+
+    function setStoryPhase(phase) {
+      if (phase) surface.dataset.characterStory = phase;
+      else delete surface.dataset.characterStory;
+      person.classList.toggle('is-idle', phase === 'idle');
+      person.classList.toggle('is-calling', phase === 'calling');
+      person.classList.toggle('is-reuniting', phase === 'reunion');
+      corgi.classList.toggle('is-idle', phase === 'idle');
+      corgi.classList.toggle('is-alert', phase === 'alert');
+      corgi.classList.toggle('is-running', phase === 'running');
+      corgi.classList.toggle('is-reuniting', phase === 'reunion');
+      corgi.classList.toggle('is-returning', phase === 'returning');
+    }
+
+    function updateGreetingTrigger(status) {
+      var config = {
+        idle: { label: '和我打个招呼', title: '点击和 Hresh 打个招呼', className: '' },
+        calling: { label: '正在招呼…', title: '互动正在开始', className: 'is-playing' },
+        running: { label: '柯基在赶来…', title: '柯基正在赶来', className: 'is-playing' },
+        complete: { label: '送它回去', title: '让柯基回到出发位置', className: 'is-complete' },
+        returning: { label: '正在归位…', title: '柯基正在回到出发位置', className: 'is-playing' }
+      }[status];
+      greetingLabel.textContent = config.label;
+      greetingTrigger.title = config.title;
+      greetingTrigger.disabled = status === 'calling' || status === 'running' || status === 'returning';
+      greetingTrigger.classList.toggle('is-playing', config.className === 'is-playing');
+      greetingTrigger.classList.toggle('is-complete', config.className === 'is-complete');
     }
 
     function positionInSurface(character) {
@@ -666,35 +737,43 @@ export function initializeSite() {
       armed = true;
       if (frameId) nativeCancelAnimationFrame(frameId);
       frameId = null;
+      person.style.cssText = '';
+      corgi.style.cssText = '';
       corgi.style.opacity = '';
       corgi.classList.add('is-settled');
+      sceneOrigin = null;
+      returnStart = null;
       setFrame(personImage, personFrames.idle);
       setFrame(corgiImage, corgiFrames.sit);
-      if (!reducedMotion.matches) {
-        setTimeout(function() {
-          if (state === 'idle') setFrame(personImage, personFrames.wave);
-        }, 900);
-        setTimeout(function() {
-          if (state === 'idle') setFrame(personImage, personFrames.idle);
-        }, 1500);
-      }
+      setStoryPhase('idle');
+      updateGreetingTrigger('idle');
     }
 
     function begin(now) {
-      if (state === 'running' || !armed || reducedMotion.matches) return;
+      if (state === 'running' || state === 'returning' || !armed || reducedMotion.matches) return;
+      if (state === 'settled') {
+        returnHome();
+        return;
+      }
       cancelPendingHover();
       armed = false;
       state = 'running';
       paused = false;
       cycleStartedAt = now || performance.now();
-      freezeAtVisualPosition(person);
+      sceneOrigin = {
+        person: freezeAtVisualPosition(person),
+        corgi: null
+      };
       corgiStart = freezeAtVisualPosition(corgi);
+      sceneOrigin.corgi = { x: corgiStart.x, y: corgiStart.y };
       corgiTarget = null;
       corgi.style.opacity = '';
       corgi.style.transform = 'none';
       corgi.classList.remove('is-settled');
       setFrame(personImage, personFrames.idle);
       setFrame(corgiImage, corgiFrames.sit);
+      setStoryPhase('calling');
+      updateGreetingTrigger('calling');
       frameId = requestAnimationFrame(paint);
     }
 
@@ -702,34 +781,43 @@ export function initializeSite() {
       if (paused || state !== 'running') return;
       var elapsed = now - cycleStartedAt;
 
-      if (elapsed < 700) {
-        setFrame(personImage, personFrames.idle);
+      if (elapsed < 650) {
+        setStoryPhase('calling');
+        setFrame(personImage, Math.floor(elapsed / 180) % 2 ? personFrames.wave : personFrames.return);
         setFrame(corgiImage, corgiFrames.sit);
         corgi.classList.add('is-settled');
         corgi.style.transform = 'none';
-      } else if (elapsed < 1500) {
-        setFrame(personImage, Math.floor((elapsed - 700) / 200) % 2 ? personFrames.return : personFrames.wave);
+      } else if (elapsed < 1350) {
+        setStoryPhase('alert');
+        setFrame(personImage, personFrames.wave);
         setFrame(corgiImage, corgiFrames.sit);
         corgi.classList.add('is-settled');
       } else if (elapsed < 3300) {
-        var runElapsed = elapsed - 1500;
-        var progress = easeOutCubic(runElapsed / 1800);
+        var runElapsed = elapsed - 1350;
+        var progress = easeOutCubic(runElapsed / 1950);
         if (!corgiTarget) corgiTarget = getCorgiTarget();
         var offsetX = (corgiTarget.x - corgiStart.x) * progress;
-        var offsetY = (corgiTarget.y - corgiStart.y) * progress;
+        var hop = Math.sin(progress * Math.PI * 5) * Math.max(5, corgiStart.y * 0.012);
+        var offsetY = (corgiTarget.y - corgiStart.y) * progress - hop;
+        setStoryPhase('running');
+        updateGreetingTrigger('running');
         setFrame(personImage, personFrames.return);
         setFrame(corgiImage, corgiFrames.run[Math.floor(runElapsed / 150) % corgiFrames.run.length]);
         corgi.classList.remove('is-settled');
         corgi.style.transform = 'translate(' + offsetX + 'px, ' + offsetY + 'px)';
-      } else if (elapsed < 5000) {
+      } else if (elapsed < 5200) {
         var finalX = corgiTarget.x - corgiStart.x;
         var finalY = corgiTarget.y - corgiStart.y;
-        setFrame(personImage, personFrames.return);
-        setFrame(corgiImage, corgiFrames.sit);
+        setStoryPhase('reunion');
+        setFrame(personImage, personFrames.greet);
+        setFrame(corgiImage, corgiFrames.arrive);
         corgi.classList.add('is-settled');
         corgi.style.transform = 'translate(' + finalX + 'px, ' + finalY + 'px)';
       } else {
         state = 'settled';
+        armed = true;
+        setStoryPhase('reunion');
+        updateGreetingTrigger('complete');
         frameId = null;
         return;
       }
@@ -737,28 +825,64 @@ export function initializeSite() {
       frameId = requestAnimationFrame(paint);
     }
 
-    person.addEventListener('mouseenter', function() {
-      cancelPendingHover();
-      if (!armed || reducedMotion.matches) return;
-      // Give pointerdown a chance to identify a drag before starting the story.
-      hoverTimer = setTimeout(function() {
-        hoverTimer = null;
-        if (!pointerPressed) begin();
-      }, 80);
-    });
-    person.addEventListener('mouseleave', function() {
-      cancelPendingHover();
+    function easeInOutCubic(progress) {
+      return progress < 0.5
+        ? 4 * progress * progress * progress
+        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+    }
+
+    function returnHome(now) {
+      if (state !== 'settled' || !sceneOrigin || reducedMotion.matches) return;
+      state = 'returning';
+      armed = false;
+      paused = false;
+      cycleStartedAt = now || performance.now();
+      returnStart = freezeAtVisualPosition(corgi);
+      freezeAtVisualPosition(person);
+      corgi.classList.remove('is-settled');
+      setStoryPhase('returning');
+      updateGreetingTrigger('returning');
+      frameId = requestAnimationFrame(paintReturn);
+    }
+
+    function paintReturn(now) {
+      if (paused || state !== 'returning' || !sceneOrigin || !returnStart) return;
+      var elapsed = now - cycleStartedAt;
+      var progress = Math.min(1, elapsed / 1700);
+      var eased = easeInOutCubic(progress);
+      var offsetX = (sceneOrigin.corgi.x - returnStart.x) * eased;
+      var hop = Math.sin(eased * Math.PI * 5) * Math.max(5, returnStart.y * 0.012);
+      var offsetY = (sceneOrigin.corgi.y - returnStart.y) * eased - hop;
+
+      setStoryPhase('returning');
+      setFrame(personImage, personFrames.return);
+      setFrame(corgiImage, corgiFrames.run[Math.floor(elapsed / 150) % corgiFrames.run.length]);
+      corgi.style.transform = 'translate(' + offsetX + 'px, ' + offsetY + 'px)';
+
+      if (progress < 1) {
+        frameId = requestAnimationFrame(paintReturn);
+        return;
+      }
+
+      person.style.left = sceneOrigin.person.x + 'px';
+      person.style.top = sceneOrigin.person.y + 'px';
+      corgi.style.left = sceneOrigin.corgi.x + 'px';
+      corgi.style.top = sceneOrigin.corgi.y + 'px';
+      corgi.style.transform = 'none';
+      corgi.classList.add('is-settled');
+      setFrame(personImage, personFrames.idle);
+      setFrame(corgiImage, corgiFrames.sit);
+      state = 'idle';
       armed = true;
-    });
-    person.addEventListener('pointerdown', function() {
-      pointerPressed = true;
-      cancelPendingHover();
-    });
-    document.addEventListener('pointerup', function() { pointerPressed = false; });
-    document.addEventListener('pointercancel', function() { pointerPressed = false; });
-    person.addEventListener('click', function() {
-      // On touch devices there is no mouseenter; a tap is the equivalent trigger.
-      if (!window.matchMedia('(hover: hover)').matches && person.dataset.dragged !== '1') begin();
+      returnStart = null;
+      sceneOrigin = null;
+      setStoryPhase('idle');
+      updateGreetingTrigger('idle');
+      frameId = null;
+    }
+
+    greetingTrigger.addEventListener('click', function() {
+      if (!reducedMotion.matches) begin();
     });
 
     return {
@@ -771,7 +895,7 @@ export function initializeSite() {
       },
       cancelPending: cancelPendingHover,
       pause: function() {
-        if (state !== 'running' || paused) return;
+        if ((state !== 'running' && state !== 'returning') || paused) return;
         paused = true;
         pausedElapsed = performance.now() - cycleStartedAt;
         if (frameId) nativeCancelAnimationFrame(frameId);
@@ -780,12 +904,17 @@ export function initializeSite() {
         freezeAtVisualPosition(corgi);
       },
       resume: function() {
-        if (state !== 'running' || !paused || reducedMotion.matches) return;
+        if ((state !== 'running' && state !== 'returning') || !paused || reducedMotion.matches) return;
         paused = false;
         cycleStartedAt = performance.now() - pausedElapsed;
-        corgiStart = positionInSurface(corgi);
-        corgiTarget = null;
-        frameId = requestAnimationFrame(paint);
+        if (state === 'returning') {
+          returnStart = positionInSurface(corgi);
+          frameId = requestAnimationFrame(paintReturn);
+        } else {
+          corgiStart = positionInSurface(corgi);
+          corgiTarget = null;
+          frameId = requestAnimationFrame(paint);
+        }
       }
     };
   })();
@@ -796,6 +925,8 @@ export function initializeSite() {
   surface.querySelectorAll('.desktop-character').forEach(function(character) {
     character.addEventListener('pointerdown', function(e) {
       if (e.button !== 0) return;
+      // The greeting control travels with the person, but keeps its own click action.
+      if (e.target.closest('[data-character-trigger]')) return;
       e.preventDefault();
       if (characterStory) characterStory.cancelPending();
       if (characterStory) characterStory.pause();
@@ -873,6 +1004,8 @@ export function initializeSite() {
     var wpStars = surface.querySelectorAll('.wp-star');
     var mx = -9999, my = -9999;
     var radius = 130;
+    var starFrame = null;
+    var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
     surface.addEventListener('mousemove', function(e) {
       mx = e.clientX;
@@ -880,6 +1013,10 @@ export function initializeSite() {
     });
 
     function updateStars() {
+      if (document.hidden || currentTab() !== 'home' || reducedMotion.matches) {
+        starFrame = null;
+        return;
+      }
       wpStars.forEach(function(star) {
         var rect = star.getBoundingClientRect();
         var sx = rect.left + rect.width / 2;
@@ -901,14 +1038,19 @@ export function initializeSite() {
           star.classList.remove('disturbed');
         }
       });
-      requestAnimationFrame(updateStars);
+      starFrame = requestAnimationFrame(updateStars);
     }
-    requestAnimationFrame(updateStars);
+    function resumeStars() {
+      if (!starFrame) starFrame = requestAnimationFrame(updateStars);
+    }
+    document.addEventListener('visibilitychange', resumeStars);
+    window.addEventListener('hashchange', resumeStars);
+    resumeStars();
 
     // Click to spawn a star
     surface.addEventListener('click', function(e) {
       // Don't spawn on icon/window interactions
-      if (e.target.closest('.dicon, .os-window, .desktop-character, .desktop-intro')) return;
+      if (e.target.closest('.dicon, .os-window, .desktop-character, .desktop-intro, .character-greeting-trigger')) return;
       var star = document.createElement('span');
       star.className = 'click-star';
       star.textContent = '\u2726';

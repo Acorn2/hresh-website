@@ -7,15 +7,23 @@
 
 import { createClient } from '@supabase/supabase-js';
 
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseKey =
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  '';
+
 export const SITE_OWNER = 'hresh'; // local 模式的管理员 token
 export const TOKEN_KEY = 'hresh.wb.myToken';
 export const CARDS_KEY = 'hresh.wb.cards.v1';
 export const STROKES_KEY = 'hresh.wb.strokes.v1';
+export const MAX_REMOTE_PAYLOAD_BYTES = 64 * 1024;
+export const MAX_REMOTE_STROKE_POINTS = 4000;
 
 export const WB_CONFIG = {
-  MODE: 'local', // 'local' | 'supabase'
-  SUPABASE_URL: '',
-  SUPABASE_ANON_KEY: '',
+  MODE: import.meta.env.VITE_WHITEBOARD_MODE || 'local', // 'local' | 'supabase'
+  SUPABASE_URL: supabaseUrl,
+  SUPABASE_KEY: supabaseKey,
   TABLE: 'wb_cards',
   STROKES_TABLE: 'wb_strokes',
   VOTES_TABLE: 'wb_votes',
@@ -26,7 +34,7 @@ export function supabaseReady() {
   return (
     WB_CONFIG.MODE === 'supabase' &&
     !!WB_CONFIG.SUPABASE_URL &&
-    !!WB_CONFIG.SUPABASE_ANON_KEY
+    !!WB_CONFIG.SUPABASE_KEY
   );
 }
 
@@ -90,7 +98,7 @@ export function saveLocalStrokes(strokes) {
 
 let sb = null;
 export function getSb() {
-  if (!sb) sb = createClient(WB_CONFIG.SUPABASE_URL, WB_CONFIG.SUPABASE_ANON_KEY);
+  if (!sb) sb = createClient(WB_CONFIG.SUPABASE_URL, WB_CONFIG.SUPABASE_KEY);
   return sb;
 }
 
@@ -118,22 +126,46 @@ export async function fetchAdmins() {
 const rowToCard = (row) => ({ ...row.data, id: row.id, owner: row.owner });
 const cardToRow = (card) => ({ id: card.id, owner: card.owner, data: card });
 
+function assertCardPayload(card) {
+  if (!card?.id || !/^[A-Za-z0-9_-]{1,100}$/.test(card.id)) {
+    throw new Error('invalid card id');
+  }
+  if (JSON.stringify(card).length > MAX_REMOTE_PAYLOAD_BYTES) {
+    throw new Error('card payload is too large');
+  }
+}
+
+function assertStrokePayload(stroke) {
+  if (!stroke?.id || !/^[A-Za-z0-9_-]{1,100}$/.test(stroke.id)) {
+    throw new Error('invalid stroke id');
+  }
+  if (!Array.isArray(stroke.points) || stroke.points.length > MAX_REMOTE_STROKE_POINTS * 2) {
+    throw new Error('stroke contains too many points');
+  }
+  if (JSON.stringify(stroke).length > MAX_REMOTE_PAYLOAD_BYTES) {
+    throw new Error('stroke payload is too large');
+  }
+}
+
 export async function fetchCards() {
   const { data, error } = await getSb()
     .from(WB_CONFIG.TABLE)
     .select('*')
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: true })
+    .limit(5000);
   if (error) throw error;
   return (data || []).map(rowToCard);
 }
 
 export async function insertCardRemote(card) {
+  assertCardPayload(card);
   markLocalWrite(card.id);
   const { error } = await getSb().from(WB_CONFIG.TABLE).insert(cardToRow(card));
   if (error) throw error;
 }
 
 export async function updateCardRemote(card) {
+  assertCardPayload(card);
   markLocalWrite(card.id);
   const { error } = await getSb()
     .from(WB_CONFIG.TABLE)
@@ -181,12 +213,14 @@ export async function fetchStrokesRemote() {
   const { data, error } = await getSb()
     .from(WB_CONFIG.STROKES_TABLE)
     .select('*')
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: true })
+    .limit(10000);
   if (error) throw error;
   return (data || []).map(rowToStroke);
 }
 
 export async function insertStrokeRemote(stroke) {
+  assertStrokePayload(stroke);
   const { error } = await getSb()
     .from(WB_CONFIG.STROKES_TABLE)
     .insert({ id: stroke.id, owner: stroke.owner, data: stroke });
@@ -201,7 +235,7 @@ export async function deleteStrokeRemote(id) {
 // ---------- 投票（一人一票，可改可取消） ----------
 
 export async function fetchVotes() {
-  const { data, error } = await getSb().from(WB_CONFIG.VOTES_TABLE).select('*');
+  const { data, error } = await getSb().from(WB_CONFIG.VOTES_TABLE).select('*').limit(20000);
   if (error) throw error;
   return data || [];
 }

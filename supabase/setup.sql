@@ -34,6 +34,47 @@ create table if not exists public.wb_admins (
   created_at timestamptz not null default now()
 );
 
+-- 约束公开白板的单条数据体积和坐标规模，避免匿名写入无限膨胀。
+do $$
+begin
+  alter table public.wb_cards
+    add constraint wb_cards_id_length check (char_length(id) between 1 and 100);
+exception when duplicate_object then null;
+end $$;
+do $$
+begin
+  alter table public.wb_cards
+    add constraint wb_cards_payload_size check (pg_column_size(data) <= 65536);
+exception when duplicate_object then null;
+end $$;
+do $$
+begin
+  alter table public.wb_strokes
+    add constraint wb_strokes_id_length check (char_length(id) between 1 and 100);
+exception when duplicate_object then null;
+end $$;
+do $$
+begin
+  alter table public.wb_strokes
+    add constraint wb_strokes_payload_size check (pg_column_size(data) <= 65536);
+exception when duplicate_object then null;
+end $$;
+do $$
+begin
+  alter table public.wb_strokes
+    add constraint wb_strokes_points_limit check (
+      jsonb_typeof(data->'points') = 'array'
+      and jsonb_array_length(data->'points') <= 8000
+    );
+exception when duplicate_object then null;
+end $$;
+do $$
+begin
+  alter table public.wb_votes
+    add constraint wb_votes_option_limit check (option_index between 0 and 3);
+exception when duplicate_object then null;
+end $$;
+
 -- 打开行级安全（RLS）——所有权限都在数据库层面强制
 alter table public.wb_cards enable row level security;
 alter table public.wb_strokes enable row level security;
