@@ -238,7 +238,7 @@ function HomeTab() {
             return <span key={index} className={`wp-star wp-star-${glyphIndex}`} style={style} aria-hidden="true">{wallpaperStarGlyphs[glyphIndex]}</span>;
           })}
           <div className="desktop-character desktop-character-person" data-character="person" role="group" aria-label="Hresh赫什与柯基互动">
-            <img id="desktopCharacterPerson" src="/hresh-animation-person-idle.png" alt="" loading="eager" />
+            <img id="desktopCharacterPerson" src="/optimized/hresh-person-idle.png" alt="" loading="lazy" />
             <button className="character-greeting-trigger" data-character-trigger type="button" aria-describedby="characterGreetingHint">
               <span className="character-greeting-label">和我打个招呼</span>
               <span className="character-greeting-arrow" aria-hidden="true">↗</span>
@@ -246,7 +246,7 @@ function HomeTab() {
             </button>
           </div>
           <div className="desktop-character desktop-character-corgi is-settled" data-character="corgi" role="img" aria-label="Hresh赫什的三色柯基">
-            <img id="desktopCharacterCorgi" src="/hresh-animation-corgi-sit.png" alt="" loading="eager" />
+            <img id="desktopCharacterCorgi" src="/optimized/hresh-corgi-sit.png" alt="" loading="lazy" />
           </div>
           <div className="character-story-effects" aria-hidden="true">
             <span className="story-call-ring"></span>
@@ -273,7 +273,7 @@ function HomeTab() {
               <div className="goodbye-body"><div className="goodbye-terminal">
                 <div className="gt-line"><span className="gt-prompt">$ </span><span className="gt-cmd">echo "see you"</span></div><div className="gt-line gt-output">See you next time.</div><div className="gt-line">&nbsp;</div>
                 <div className="gt-line"><span className="gt-prompt">$ </span><span className="gt-cmd">cat contact.md</span></div><div className="gt-line gt-output">📦 <a href="#works">查看产品作品集</a></div><div className="gt-line gt-output">🧭 <a href="#system">打开产品工作台</a></div><div className="gt-line">&nbsp;</div>
-                <div className="gt-line"><span className="gt-prompt">$ </span><span className="gt-cmd">fortune</span></div><div className="gt-line gt-dim">“找到你喜欢的事，然后让它杀死你。” — Bukowski</div><div className="gt-line">&nbsp;</div>
+                <div className="gt-line"><span className="gt-prompt">$ </span><span className="gt-cmd">fortune</span></div><div className="gt-line gt-dim">“想要和得到，中间还有两个字，那就是要做到。你只有做到，才能得到。”</div><div className="gt-line">&nbsp;</div>
                 <div className="gt-line"><span className="gt-prompt">$ </span><span className="gt-cmd">exit</span></div><div className="gt-line gt-output"><span className="gt-gold">[Process completed]</span></div>
               </div></div>
               <div className="goodbye-footer">

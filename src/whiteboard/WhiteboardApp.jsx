@@ -83,11 +83,22 @@ function buildLocalCards() {
 
 const seedIds = new Set(seedCards.map((seed) => seed.id));
 
+// 产品种子卡的图标由代码维护。保留远程白板中已有的位置和其余内容，
+// 但在产品图标更新后立即使用新的静态资源，无需手动迁移已有卡片。
+function applySeedImage(card) {
+  const seed = seedCards.find((item) => item.id === card.id);
+  if (!seed?.data?.image) return card;
+  return { ...card, data: { ...card.data, image: seed.data.image } };
+}
+
 // 远程数据库尚未完成首次播种时，先展示代码内的默认卡片，避免白板首屏为空。
 // 一旦数据库已有对应种子卡，优先使用数据库版本；访客创建的卡片照常追加。
 function buildRemoteCards(cardRows) {
   const remoteById = new Map(cardRows.map((card) => [card.id, card]));
-  const seeds = seedCards.map((seed) => remoteById.get(seed.id) || seed);
+  const seeds = seedCards.map((seed) => {
+    const storedCard = remoteById.get(seed.id);
+    return storedCard ? applySeedImage(storedCard) : seed;
+  });
   const visitorCards = cardRows.filter((card) => !seedIds.has(card.id));
   return [...seeds, ...visitorCards];
 }
@@ -354,7 +365,7 @@ export default function WhiteboardApp() {
               return;
             }
             if (p.eventType === 'UPDATE' && isOwnEcho(p.new.id)) return; // 忽略自己的回广播
-            const card = { ...p.new.data, id: p.new.id, owner: p.new.owner };
+            const card = applySeedImage({ ...p.new.data, id: p.new.id, owner: p.new.owner });
             setCards((prev) =>
               mergeVotes(
                 prev.some((c) => c.id === card.id)

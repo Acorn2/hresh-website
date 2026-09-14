@@ -606,18 +606,18 @@ export function initializeSite() {
     var corgiImage = document.getElementById('desktopCharacterCorgi');
     var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     var personFrames = {
-      idle: '/hresh-animation-person-idle.png',
-      wave: '/hresh-animation-person-wave.png',
-      return: '/hresh-animation-person-return.png',
-      greet: '/hresh-animation-person-greet.png'
+      idle: '/optimized/hresh-person-idle.png',
+      wave: '/optimized/hresh-person-wave.png',
+      return: '/optimized/hresh-person-return.png',
+      greet: '/optimized/hresh-person-greet.png'
     };
     var corgiFrames = {
-      sit: '/hresh-animation-corgi-sit.png',
-      arrive: '/hresh-animation-corgi-arrive.png',
+      sit: '/optimized/hresh-corgi-sit.png',
+      arrive: '/optimized/hresh-corgi-arrive.png',
       run: [
-        '/hresh-animation-corgi-run-1.png',
-        '/hresh-animation-corgi-run-2.png',
-        '/hresh-animation-corgi-run-3.png'
+        '/optimized/hresh-corgi-run-1.png',
+        '/optimized/hresh-corgi-run-2.png',
+        '/optimized/hresh-corgi-run-3.png'
       ]
     };
     var state = 'idle'; // idle | running | settled | returning
@@ -633,11 +633,6 @@ export function initializeSite() {
     var hoverTimer = null;
 
     if (!person || !corgi || !personImage || !corgiImage || !greetingTrigger || !greetingLabel) return null;
-
-    Object.values(personFrames).concat(corgiFrames.run, corgiFrames.sit, corgiFrames.arrive).forEach(function(src) {
-      var image = new Image();
-      image.src = src;
-    });
 
     function setFrame(image, source) {
       if (image.getAttribute('src') !== source) image.setAttribute('src', source);

@@ -4,14 +4,14 @@
 
 ## 1. 当前项目的部署事实
 
-- 构建命令：`npm run build`
-- 构建产物：项目根目录下的 `dist/`
+- 构建命令：`NODE_OPTIONS=--max-old-space-size=512 npm run build`
+- 构建产物：`/my/projects/hresh-website/dist/`
 - 主站入口：`dist/index.html`
 - 产品工作台入口：`dist/whiteboard.html`
 - `public/` 下的图片、音频、字体、模型和其他静态资源会原样复制到 `dist/`
 - 已移除的私人页面和历史实验页面保存在本地 `archive/`，不会进入构建产物，也不应提交回仓库。
 - 首页通过 `/whiteboard.html` 加载产品工作台 iframe，因此 `whiteboard.html` 必须和 `index.html` 一起部署
-- 当前白板默认使用浏览器 `localStorage`，访客之间不会共享数据；部署站点本身不需要数据库
+- 当前生产白板通过 Supabase 匿名登录、RLS 和 Realtime 共享数据；未配置 Supabase 或显式使用 `local` 模式时才回退到浏览器 `localStorage`
 - 当前页面引用了 Google Fonts；如果服务器或访客网络无法访问 Google Fonts，页面仍可显示，但会回退到系统字体
 
 推荐架构：
@@ -32,7 +32,7 @@
 - ECS 公网 IPv4
 - SSH 登录用户名和方式
 - 服务器系统版本
-- 计划绑定的域名，例如 `www.example.com`
+- 计划绑定的域名：`hreshhao.com`（当前 HTTP 会跳转到 `www.hreshhao.com`）
 
 ### 2.2 安全组
 
@@ -77,14 +77,11 @@ npm --version
 
 ### 3.2 获取项目代码
 
-将项目放到服务器目录，例如：
+项目已经放在服务器目录 `/my/projects/hresh-website`，不需要另建 `/var/www` 目录：
 
 ```bash
-sudo mkdir -p /var/www
-sudo chown "$USER":"$USER" /var/www
-cd /var/www
-git clone <仓库地址> hresh-website
-cd /var/www/hresh-website
+cd /my/projects/hresh-website
+git status
 ```
 
 如果仓库是私有仓库，建议使用服务器专用的只读 Deploy Key 或在本地构建后上传 `dist/`，不要把个人 GitHub Token 写进命令、脚本或仓库。
@@ -92,9 +89,9 @@ cd /var/www/hresh-website
 ### 3.3 安装依赖并构建
 
 ```bash
-cd /var/www/hresh-website
+cd /my/projects/hresh-website
 npm ci
-npm run build
+NODE_OPTIONS=--max-old-space-size=512 npm run build
 ```
 
 构建成功后，确认关键文件存在：
@@ -108,25 +105,30 @@ test -f dist/whiteboard.html
 
 ## 4. 配置 Nginx
 
-创建站点配置：
+创建或替换站点配置。当前项目对应的配置文件为 `hreshhao.conf`，个人网站的静态根目录必须指向 `/my/projects/hresh-website/dist`：
 
 ```bash
-sudo nano /etc/nginx/sites-available/hresh-website
+sudo nano /etc/nginx/conf.d/hreshhao.conf
 ```
 
-写入以下内容，并将域名替换成真实域名：
+个人网站的关键配置如下。若同一个配置文件还承载其他项目代理，请保留那些 `location`，只替换个人网站对应部分：
 
 ```nginx
 server {
     listen 80;
     listen [::]:80;
 
-    server_name example.com www.example.com;
+    server_name hreshhao.com www.hreshhao.com;
 
-    root /var/www/hresh-website/dist;
+    root /my/projects/hresh-website/dist;
     index index.html;
 
-    # 保证首页、白板入口和静态资源都能直接访问。
+    # 多入口静态站点：白板必须作为真实文件直接返回，不能回退成首页。
+    location = /whiteboard.html {
+        try_files $uri =404;
+        expires -1;
+    }
+
     location / {
         try_files $uri $uri/ /index.html;
     }
@@ -135,15 +137,19 @@ server {
     location ~* \.(?:css|js|mjs|png|jpg|jpeg|gif|webp|svg|ico|woff|woff2|wasm|glb|mp3|json)$ {
       try_files $uri =404;
       expires 7d;
-      add_header Cache-Control "public, max-age=604800";
+      add_header Cache-Control "public, max-age=604800" always;
     }
 
-    # 基础安全响应头；当前白板使用 Supabase，需放行 REST 和 Realtime WebSocket。
-    # 这组严格策略适用于首页、白板和当前构建的应用页面。
+    # 基础安全响应头；Supabase REST 和 Realtime WebSocket 由浏览器直连。
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
     add_header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; frame-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self'; connect-src 'self' https://nfadcwmzchtbmizyllbd.supabase.co wss://nfadcwmzchtbmizyllbd.supabase.co" always;
+
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css application/javascript application/json application/manifest+json image/svg+xml text/xml application/xml;
 
     # 不让 Nginx 返回隐藏文件；必要时可按需放开特定文件。
     location ~ /\. {
@@ -155,7 +161,17 @@ server {
 启用配置并检查：
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/hresh-website /etc/nginx/sites-enabled/hresh-website
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+如果配置文件来自本地电脑，可先上传到服务器临时目录，再覆盖正式配置。上传后先检查文件开头，确认没有出现 `g_format`、`_format` 等截断内容：
+
+```bash
+scp /本地路径/hreshhao.conf 用户名@服务器IP:/tmp/hreshhao.conf
+ssh 用户名@服务器IP
+sudo cp /etc/nginx/conf.d/hreshhao.conf /etc/nginx/conf.d/hreshhao.conf.bak
+sudo cp /tmp/hreshhao.conf /etc/nginx/conf.d/hreshhao.conf
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -175,15 +191,16 @@ sudo systemctl reload nginx
 先在服务器本机检查响应：
 
 ```bash
-curl -I http://127.0.0.1/
-curl -I http://127.0.0.1/whiteboard.html
+curl -I https://hreshhao.com/
+curl -I https://hreshhao.com/whiteboard.html
+curl -s https://hreshhao.com/whiteboard.html | grep -E 'whiteboard-root|assets/whiteboard-'
 ```
 
 然后在浏览器检查以下路径：
 
-1. `http://你的域名/` 能打开首页。
+1. `https://hreshhao.com/` 能打开首页。
 2. 首页的“产品工作台”能正常加载，不出现 iframe 空白。
-3. `http://你的域名/whiteboard.html` 可以直接打开。
+3. `https://hreshhao.com/whiteboard.html` 可以直接打开。
 4. 作品集图片、头像、音频、字体和 3D 模型没有 404。
 5. 移动端和桌面端各刷新一次，确认没有资源路径大小写问题。
 6. 浏览器开发者工具的 Console 和 Network 中没有阻断页面使用的错误。
@@ -200,7 +217,7 @@ curl -I http://127.0.0.1/whiteboard.html
 
 1. 确认域名 A 记录已经指向 ECS。
 2. 确认安全组放行 `80` 和 `443`。
-3. 为实际使用的域名申请证书，例如 `example.com` 和 `www.example.com`。
+3. 为实际使用的域名申请证书：`hreshhao.com` 和 `www.hreshhao.com`。
 4. 将证书配置到 Nginx 的 `443` server 中。
 5. 将 `80` 的请求重定向到 HTTPS。
 6. 用浏览器和 `curl -I https://你的域名/` 验证。
@@ -213,8 +230,8 @@ curl -I http://127.0.0.1/whiteboard.html
 server {
     listen 80;
     listen [::]:80;
-    server_name example.com www.example.com;
-    return 301 https://$host$request_uri;
+    server_name hreshhao.com www.hreshhao.com;
+    return 301 https://www.hreshhao.com$request_uri;
 }
 ```
 
@@ -232,11 +249,12 @@ sudo systemctl reload nginx
 先备份当前可用产物，再拉取代码和构建：
 
 ```bash
-cd /var/www/hresh-website
-tar -czf /var/www/hresh-website-dist-$(date +%Y%m%d-%H%M%S).tar.gz dist
+cd /my/projects/hresh-website
+mkdir -p /my/projects/backups
+tar -czf /my/projects/backups/hresh-website-dist-$(date +%Y%m%d-%H%M%S).tar.gz dist
 git pull --ff-only
 npm ci
-npm run build
+NODE_OPTIONS=--max-old-space-size=512 npm run build
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -249,8 +267,8 @@ sudo systemctl reload nginx
 
 ```bash
 npm ci
-npm run build
-rsync -avz --delete dist/ <用户名>@<服务器IP>:/var/www/releases/hresh-website-<版本号>/
+NODE_OPTIONS=--max-old-space-size=512 npm run build
+rsync -avz --delete dist/ <用户名>@<服务器IP>:/my/projects/releases/hresh-website-<版本号>/
 ```
 
 然后将 Nginx 的 `root` 改为对应 release 目录，检查并 reload：
@@ -299,8 +317,8 @@ Supabase `anon key` 可以按其设计用于前端，但 service-role key、数�
 检查目录权限和 Nginx root：
 
 ```bash
-namei -l /var/www/hresh-website/dist/index.html
-sudo nginx -T | sed -n '/server_name example.com/,/^[[:space:]]*}/p'
+namei -l /my/projects/hresh-website/dist/index.html
+sudo nginx -T | sed -n '/server_name hreshhao.com/,/^[[:space:]]*}/p'
 ```
 
 ### 页面打开但图片 404
@@ -322,13 +340,15 @@ sudo nginx -T | sed -n '/server_name example.com/,/^[[:space:]]*}/p'
 ## 10. 部署前清单
 
 - [ ] ECS 公网 IP 已确认
+- [ ] 项目目录为 `/my/projects/hresh-website`
 - [ ] 安全组已放行 `22`、`80`、`443`
 - [ ] 域名 A 记录已指向 ECS
 - [ ] 服务器 Node.js 版本与本地兼容
 - [ ] `npm ci` 成功
-- [ ] `npm run build` 成功
+- [ ] `NODE_OPTIONS=--max-old-space-size=512 npm run build` 成功
 - [ ] `dist/index.html` 和 `dist/whiteboard.html` 存在
-- [ ] Nginx `root` 指向 `dist/`
+- [ ] Nginx `root` 指向 `/my/projects/hresh-website/dist`
+- [ ] `hreshhao.com` 和 `www.hreshhao.com` 的 DNS 已配置
 - [ ] `nginx -t` 通过
 - [ ] 首页、白板和作品集静态资源已检查
 - [ ] HTTPS 已配置并验证
