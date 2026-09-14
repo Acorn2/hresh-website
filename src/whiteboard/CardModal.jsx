@@ -4,7 +4,15 @@ import { getTemplate, EMOJI_CHOICES } from './templates.jsx';
 const INTRO_COLORS = ['#F4D758', '#2B7FD8', '#FFF9EC', '#756F64', '#211E1A'];
 
 // 统一的卡片创建/编辑弹窗：自我介绍 / 贴纸 / 拍立得 / 投票
-export default function CardModal({ open, mode, tpl, card, onClose, onSubmit }) {
+export default function CardModal({
+  open,
+  mode,
+  tpl,
+  card,
+  onClose,
+  onSubmit,
+  reviewMode,
+}) {
   const t = getTemplate(tpl);
   const isEdit = mode === 'edit';
 
@@ -26,6 +34,9 @@ export default function CardModal({ open, mode, tpl, card, onClose, onSubmit }) 
   // 通用文字模板（叙事卡 / 胶带卡 / 深色引用卡等带 editField 的模板）
   const [genericText, setGenericText] = React.useState('');
   const [author, setAuthor] = React.useState('');
+  const [website, setWebsite] = React.useState('');
+  const [formStartedAt, setFormStartedAt] = React.useState(0);
+  const [submitting, setSubmitting] = React.useState(false);
 
   React.useEffect(() => {
     if (!open) return;
@@ -43,38 +54,47 @@ export default function CardModal({ open, mode, tpl, card, onClose, onSubmit }) 
     setOptions(d.options ? d.options.map((o) => o.text) : ['', '']);
     setGenericText(t.editField ? d[t.editField] || '' : '');
     setAuthor(d.author || '');
+    setWebsite('');
+    setFormStartedAt(Date.now());
+    setSubmitting(false);
   }, [open, card]);
 
   if (!open) return null;
 
-  const submit = () => {
+  const submit = async () => {
+    if (submitting) return;
+    let payload;
     if (tpl === 'intro') {
       if (!name.trim()) return;
-      onSubmit({
+      payload = {
         emoji,
         name: name.trim().slice(0, 12),
         bio: bio.trim().slice(0, 40),
         tags: tags.split(/[,，]/).map((s) => s.trim()).filter(Boolean).slice(0, 3),
         link: normalizeUrl(link.trim()),
         color,
-      });
+      };
     } else if (tpl === 'sticker') {
-      onSubmit({ emoji: sticker });
+      payload = { emoji: sticker };
     } else if (tpl === 'polaroid') {
       if (!isEdit && !image) return;
-      onSubmit({ image, caption: caption.trim().slice(0, 30) });
+      payload = { image, caption: caption.trim().slice(0, 30) };
     } else if (tpl === 'vote') {
       const ops = options.map((s) => s.trim()).filter(Boolean).slice(0, 4);
       if (!question.trim() || ops.length < 2) return;
-      onSubmit({
+      payload = {
         question: question.trim().slice(0, 30),
         options: ops.map((text) => ({ text, votes: [] })),
-      });
+      };
     } else if (t.editField) {
-      const payload = { [t.editField]: genericText.trim().slice(0, 300) };
+      payload = { [t.editField]: genericText.trim().slice(0, 300) };
       if (tpl === 'darkquote' || tpl === 'narrative') payload.author = author.trim().slice(0, 20);
-      onSubmit(payload);
     }
+    if (!payload) return;
+    setSubmitting(true);
+    const ok = await onSubmit(payload, { website, formStartedAt });
+    setSubmitting(false);
+    if (!ok && reviewMode) setFormStartedAt(Date.now());
   };
 
   const canSubmit =
@@ -89,8 +109,25 @@ export default function CardModal({ open, mode, tpl, card, onClose, onSubmit }) 
     <div className="wb-modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="wb-modal">
         <div className="wb-modal-title">
-          {isEdit ? '✏️ 编辑' : '＋ 新建'}{t.icon} {t.name}
+          {isEdit ? '✏️ 编辑' : reviewMode ? '＋ 投稿' : '＋ 新建'}{t.icon} {t.name}
         </div>
+        {reviewMode && (
+          <div className="wb-review-note">投稿审核通过后才会显示；暂不接受图片和访客发起的投票。</div>
+        )}
+
+        {reviewMode && (
+          <div className="wb-honeypot" aria-hidden="true">
+            <label htmlFor="wbCardWebsite">请勿填写此字段</label>
+            <input
+              id="wbCardWebsite"
+              name="company_website"
+              tabIndex={-1}
+              autoComplete="off"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+            />
+          </div>
+        )}
 
         {tpl === 'intro' && (
           <>
@@ -202,8 +239,12 @@ export default function CardModal({ open, mode, tpl, card, onClose, onSubmit }) 
 
         <div className="wb-modal-actions">
           <button className="wb-modal-cancel" onClick={onClose}>取消</button>
-          <button className="wb-modal-send" onClick={submit} disabled={!canSubmit}>
-            {isEdit ? '保存 ✨' : '贴上去 ✨'}
+          <button
+            className="wb-modal-send"
+            onClick={submit}
+            disabled={!canSubmit || submitting}
+          >
+            {submitting ? '提交中…' : isEdit ? '保存 ✨' : reviewMode ? '提交审核' : '贴上去 ✨'}
           </button>
         </div>
       </div>

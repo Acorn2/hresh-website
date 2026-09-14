@@ -36,7 +36,6 @@ function DesktopIcon({ icon }) {
         {icon.image && <img src={icon.image.src} alt={icon.image.alt} loading="lazy" />}
         {icon.birthday && <span className="birthday-icon-mark">B</span>}
       </div>
-      {icon.featured && <span className="dicon-featured-mark">CORE</span>}
       <div className="dicon-label">{icon.label}</div>
     </button>
   );

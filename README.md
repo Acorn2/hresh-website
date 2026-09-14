@@ -23,7 +23,32 @@ npm run build
 - `src/styles/site.css`: Homepage styles and animation definitions.
 - `src/lib/siteController.js`: Homepage interaction controller: tabs, terminal launch, desktop windows, canvas loading, pointer interactions, and exit loop.
 - `src/whiteboard/`: 本地优先的产品工作台白板。
+- `supabase/setup.sql`: 受控互动墙数据库结构、RLS、限流函数和旧白板迁移。
+- `supabase/functions/whiteboard-write/`: 投稿与投票的唯一远端写入入口。
 - `public/`: 当前首页、产品工作台、作品集和 Skills 使用的静态资源。
+
+## Controlled Visitor Wall
+
+线上 Supabase 模式采用“投稿审核后发布”，不是匿名实时共享画布：
+
+- 公开页面只读取审核后的卡片和聚合票数。
+- 留言、名片和贴纸只经过 Edge Function 进入待审核区，不依赖第三方验证码。
+- Edge Function 使用蜜罐、填写时长、IP/设备/全站限流、重复检测和待审核队列上限控制滥用。
+- 访客图片与远端共享涂鸦默认关闭；涂鸦仅保存在当前浏览器。
+- 写入开关默认关闭，数据库权限测试通过后再开启。
+
+部署顺序：
+
+1. 在 Supabase SQL Editor 执行 `supabase/setup.sql`。旧访客卡只迁入待审核区，旧表不会删除。
+2. 为 Edge Function 配置 `WHITEBOARD_HASH_SALT`、`WHITEBOARD_ALLOWED_ORIGINS`，保持 `WHITEBOARD_WRITE_ENABLED=false`。
+3. 部署 `supabase/functions/whiteboard-write`。
+4. 根据 `.env.example` 配置前端公开变量，并设置 `VITE_WHITEBOARD_MODE=supabase`。
+5. 使用 `npm run test:rls` 验证匿名客户端只有读取权限。
+6. 完成一次测试投稿、审核发布、限流和投票后，再将 `WHITEBOARD_WRITE_ENABLED` 改为 `true`。
+
+管理员在 `wb_submissions` 表中筛选 `pending`：将 `status` 改为 `published` 即发布，改为 `rejected` 即拒绝；已发布内容改为 `archived` 会自动撤回。详细数据流、配额和回退方式见 `ARCHITECTURE.md`。
+
+当前方案不使用 CAPTCHA。蜜罐和填写时长只能拦截低成本脚本，不能证明访问者一定是真人；安全底线由审核前不公开、严格写入配额、最多 100 条待审核内容和可随时关闭的写入开关共同保证。
 
 ## Updating The Homepage
 

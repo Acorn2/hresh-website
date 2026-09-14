@@ -14,22 +14,13 @@ import {
   loadLocalStrokes,
   saveLocalStrokes,
   supabaseReady,
-  initRemoteAuth,
-  fetchAdmins,
-  fetchCards,
-  fetchStrokesRemote,
-  fetchVotes,
-  insertCardRemote,
-  updateCardRemote,
-  deleteCardRemote,
-  syncCardDebounced,
-  isOwnEcho,
-  insertStrokeRemote,
-  deleteStrokeRemote,
-  upsertVoteRemote,
-  deleteVoteRemote,
-  mergeVotes,
-  subscribeRemote,
+  WB_CONFIG,
+  fetchPublicCards,
+  fetchVoteCounts,
+  submitCardForReview,
+  submitVoteRemote,
+  mergeVoteCounts,
+  saveVoteSelection,
 } from './data.js';
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
@@ -83,34 +74,19 @@ function buildLocalCards() {
 
 const seedIds = new Set(seedCards.map((seed) => seed.id));
 
-// 产品种子卡的图标由代码维护。保留远程白板中已有的位置和其余内容，
-// 但在产品图标更新后立即使用新的静态资源，无需手动迁移已有卡片。
-function applySeedImage(card) {
-  const seed = seedCards.find((item) => item.id === card.id);
-  if (!seed?.data?.image) return card;
-  return { ...card, data: { ...card.data, image: seed.data.image } };
-}
-
-// 远程数据库尚未完成首次播种时，先展示代码内的默认卡片，避免白板首屏为空。
-// 一旦数据库已有对应种子卡，优先使用数据库版本；访客创建的卡片照常追加。
+// 品牌和产品种子卡由代码维护；远程数据库只追加审核通过的访客卡。
 function buildRemoteCards(cardRows) {
-  const remoteById = new Map(cardRows.map((card) => [card.id, card]));
-  const seeds = seedCards.map((seed) => {
-    const storedCard = remoteById.get(seed.id);
-    return storedCard ? applySeedImage(storedCard) : seed;
-  });
-  const visitorCards = cardRows.filter((card) => !seedIds.has(card.id));
-  return [...seeds, ...visitorCards];
+  return [...seedCards, ...cardRows.filter((card) => !seedIds.has(card.id))];
 }
 
 export default function WhiteboardApp() {
+  const remoteMode = supabaseReady();
   const localToken = React.useMemo(getMyToken, []);
-  const [remote, setRemote] = React.useState(null); // { uid, isAdmin }，连接成功后才有
-  const myToken = remote?.uid ?? localToken;
-  const admin = remote ? remote.isAdmin : isAdmin(localToken);
+  const myToken = localToken;
+  const admin = !remoteMode && isAdmin(localToken);
 
-  const [cards, setCards] = React.useState(() => (supabaseReady() ? [] : buildLocalCards()));
-  const [strokes, setStrokes] = React.useState(() => (supabaseReady() ? [] : loadLocalStrokes()));
+  const [cards, setCards] = React.useState(() => (remoteMode ? seedCards : buildLocalCards()));
+  const [strokes, setStrokes] = React.useState(loadLocalStrokes);
   const [scale, setScale] = React.useState(0.8);
   const [pan, setPan] = React.useState({ x: 40, y: 10 });
   const [editing, setEditing] = React.useState(null); // { id, text }
@@ -120,6 +96,7 @@ export default function WhiteboardApp() {
   const [cardModal, setCardModal] = React.useState(null); // { mode, tpl, card }
   const [statusMsg, setStatusMsg] = React.useState('');
   const [qrSrc, setQrSrc] = React.useState(null); // 微信二维码弹窗
+  const [cardNavOpen, setCardNavOpen] = React.useState(false);
 
   // 涂鸦
   const [drawMode, setDrawMode] = React.useState(false);
@@ -134,67 +111,53 @@ export default function WhiteboardApp() {
   const zRef = React.useRef(10);
   const cardsRef = React.useRef(cards);
   cardsRef.current = cards;
-  const remoteRef = React.useRef(null);
-  remoteRef.current = remote;
-  const votesRef = React.useRef([]); // wb_votes 行（remote 模式）
   const statusTimer = React.useRef(null);
+  const mobileViewInitializedRef = React.useRef(false);
 
   // ---------- persistence ----------
   const persist = React.useCallback((nextCards) => {
-    if (remoteRef.current) return; // remote 模式以数据库为准
+    if (remoteMode) return;
     saveLocalCards(nextCards.filter((c) => c.kind === 'message'));
-  }, []);
+  }, [remoteMode]);
 
   const updateCard = React.useCallback(
-    (id, patch, syncRemote = false) => {
+    (id, patch) => {
+      if (remoteMode) return;
       setCards((prev) => {
         const next = prev.map((c) => (c.id === id ? { ...c, ...patch } : c));
         const target = next.find((c) => c.id === id);
-        if (remoteRef.current) {
-          // remote：内容编辑立即写库；拖拽等高频更新防抖写库
-          if (target) {
-            if (syncRemote) updateCardRemote(target).catch((e) => console.warn(e));
-            else
-              syncCardDebounced(target, 600, (cid) =>
-                cardsRef.current.find((c) => c.id === cid)
-              );
-          }
-        } else {
-          persist(next);
-          if (target?.kind === 'seed') {
-            // 拖拽只存位置；只有真正改了数据才存 data，避免旧数据冻结卡片内容
-            const ov = { x: target.x, y: target.y };
-            if (patch.data) ov.data = target.data;
-            saveSeedOverride(id, ov);
-          }
+        persist(next);
+        if (target?.kind === 'seed') {
+          // 拖拽只存位置；只有真正改了数据才存 data，避免旧数据冻结卡片内容
+          const ov = { x: target.x, y: target.y };
+          if (patch.data) ov.data = target.data;
+          saveSeedOverride(id, ov);
         }
         return next;
       });
     },
-    [persist]
+    [persist, remoteMode]
   );
 
   const deleteCard = React.useCallback(
     (card) => {
+      if (remoteMode) return;
       if (!window.confirm('确定删除这张卡片？')) return;
       setCards((prev) => {
         const next = prev.filter((c) => c.id !== card.id);
         persist(next);
         return next;
       });
-      if (card.kind === 'seed' && !remoteRef.current) {
+      if (card.kind === 'seed') {
         saveSeedOverride(card.id, { deleted: true });
       }
-      if (remoteRef.current) {
-        deleteCardRemote(card.id).catch(() => {});
-      }
     },
-    [persist]
+    [persist, remoteMode]
   );
 
   // ---------- add message ----------
   const addMessage = React.useCallback(
-    (name, text, color) => {
+    async (name, text, color, antiBot) => {
       const rect = canvasRef.current?.getBoundingClientRect();
       const cx = rect ? (rect.width / 2 - pan.x) / scale : 400;
       const cy = rect ? (rect.height / 2 - pan.y) / scale : 300;
@@ -202,7 +165,7 @@ export default function WhiteboardApp() {
       const card = {
         id: `msg-${Date.now()}-${Math.floor(Math.random() * 9999)}`,
         kind: 'message',
-        owner: myToken,
+        owner: remoteMode ? 'visitor' : myToken,
         name: name || '匿名',
         text,
         color,
@@ -212,18 +175,29 @@ export default function WhiteboardApp() {
         h: 96,
         createdAt: Date.now(),
       };
+      if (remoteMode) {
+        try {
+          setModalStatus('');
+          await submitCardForReview(card, antiBot);
+          setModalOpen(false);
+          flashStatus('留言已提交，审核通过后会出现在白板上 ✨');
+          return true;
+        } catch (error) {
+          console.warn('submit message failed', error);
+          setModalStatus(humanizeWriteError(error));
+          return false;
+        }
+      }
       setCards((prev) => {
         const next = [...prev, card];
         persist(next);
         return next;
       });
       setModalOpen(false);
-      if (remoteRef.current) {
-        insertCardRemote(card).catch(() => setModalStatus('发送失败，请稍后再试 🙏'));
-      }
       flashStatus('留言已贴到白板 ✨');
+      return true;
     },
-    [myToken, persist, pan.x, pan.y, scale]
+    [myToken, persist, pan.x, pan.y, scale, remoteMode]
   );
 
   // ---------- templated cards (intro / sticker / polaroid / vote) ----------
@@ -233,13 +207,13 @@ export default function WhiteboardApp() {
   }, []);
 
   const submitCardModal = React.useCallback(
-    (data) => {
+    async (data, antiBot) => {
       if (!cardModal) return;
       if (cardModal.mode === 'edit') {
-        updateCard(cardModal.card.id, { data }, true);
+        updateCard(cardModal.card.id, { data });
         setCardModal(null);
         flashStatus('已保存 ✨');
-        return;
+        return true;
       }
       const tpl = getTemplate(cardModal.tpl);
       const rect = canvasRef.current?.getBoundingClientRect();
@@ -249,7 +223,7 @@ export default function WhiteboardApp() {
       const card = {
         id: `note-${Date.now()}-${Math.floor(Math.random() * 9999)}`,
         kind: 'message',
-        owner: myToken,
+        owner: remoteMode ? 'visitor' : myToken,
         tpl: tpl.id,
         name: '',
         data,
@@ -259,46 +233,57 @@ export default function WhiteboardApp() {
         h: tpl.h,
         createdAt: Date.now(),
       };
+      if (remoteMode) {
+        try {
+          await submitCardForReview(card, antiBot);
+          setCardModal(null);
+          flashStatus(`${tpl.icon} ${tpl.name}已提交审核 ✨`);
+          return true;
+        } catch (error) {
+          console.warn('submit card failed', error);
+          flashStatus(humanizeWriteError(error));
+          return false;
+        }
+      }
       setCards((prev) => {
         const next = [...prev, card];
         persist(next);
         return next;
       });
       setCardModal(null);
-      if (remoteRef.current) {
-        insertCardRemote(card).catch(() => {});
-      }
       flashStatus(`${tpl.icon} ${tpl.name}已贴到白板 ✨`);
+      return true;
     },
-    [cardModal, myToken, persist, pan.x, pan.y, scale, updateCard]
+    [cardModal, myToken, persist, pan.x, pan.y, scale, updateCard, remoteMode]
   );
 
   // ---------- vote ----------
   const onVote = React.useCallback(
-    (card, idx) => {
+    async (card, idx) => {
+      if (remoteMode) {
+        try {
+          const result = await submitVoteRemote(card.id, idx);
+          saveVoteSelection(card.id, result.selectedOption);
+          try {
+            const counts = await fetchVoteCounts();
+            setCards((prev) => mergeVoteCounts(prev, counts));
+          } catch (refreshError) {
+            console.warn('vote count refresh failed', refreshError);
+          }
+          flashStatus(result.selectedOption == null ? '已取消投票' : '投票成功 ✓');
+        } catch (error) {
+          console.warn('vote failed', error);
+          flashStatus(humanizeWriteError(error));
+        }
+        return;
+      }
       const options = (card.data?.options || []).map((op, i) => {
         const had = (op.votes || []).includes(myToken);
         const votes = (op.votes || []).filter((t) => t !== myToken);
         if (i === idx && !had) votes.push(myToken);
         return { ...op, votes };
       });
-      if (remoteRef.current) {
-        // remote：票数存 wb_votes（一人一票），不动卡片本体——否则访客改不了别人的投票卡
-        setCards((prev) =>
-          prev.map((c) => (c.id === card.id ? { ...c, data: { ...c.data, options } } : c))
-        );
-        const mine = votesRef.current.find((v) => v.card_id === card.id && v.voter === myToken);
-        if (mine && mine.option_index === idx) {
-          votesRef.current = votesRef.current.filter((v) => v !== mine);
-          deleteVoteRemote(card.id, myToken).catch(() => {});
-        } else {
-          votesRef.current = [
-            ...votesRef.current.filter((v) => v !== mine),
-            { card_id: card.id, voter: myToken, option_index: idx },
-          ];
-          upsertVoteRemote(card.id, myToken, idx).catch(() => {});
-        }
-      } else if (card.kind === 'seed') {
+      if (card.kind === 'seed') {
         // 种子投票卡：票数单独存本地（不进入卡片存储）
         setCards((prev) =>
           prev.map((c) => (c.id === card.id ? { ...c, data: { ...c.data, options } } : c))
@@ -311,10 +296,10 @@ export default function WhiteboardApp() {
           /* ignore */
         }
       } else {
-        updateCard(card.id, { data: { ...card.data, options } }, true);
+        updateCard(card.id, { data: { ...card.data, options } });
       }
     },
-    [myToken, updateCard]
+    [myToken, updateCard, remoteMode]
   );
 
   // ---------- status toast ----------
@@ -324,127 +309,34 @@ export default function WhiteboardApp() {
     statusTimer.current = setTimeout(() => setStatusMsg(''), 2600);
   }, []);
 
-  // ---------- remote：连接数据库 + 实时订阅 ----------
+  // ---------- remote：只读公开内容，低频刷新替代全表 Realtime ----------
   React.useEffect(() => {
-    if (!supabaseReady()) return; // local 模式：useState 已初始化
+    if (!remoteMode) return undefined;
     let cancelled = false;
-    let dispose;
-    (async () => {
+    const refresh = async (announce = false) => {
       try {
-        const uid = await initRemoteAuth();
-        const [admins, cardRows, strokeRows, voteRows] = await Promise.all([
-          fetchAdmins(),
-          fetchCards(),
-          fetchStrokesRemote(),
-          fetchVotes(),
-        ]);
+        const cardRows = await fetchPublicCards();
+        let voteRows = [];
+        try {
+          voteRows = await fetchVoteCounts();
+        } catch (voteError) {
+          console.warn('vote counts unavailable', voteError);
+        }
         if (cancelled) return;
-        votesRef.current = voteRows;
-        const isAdm = admins.includes(uid);
-        setRemote({ uid, isAdmin: isAdm });
-        setCards(mergeVotes(buildRemoteCards(cardRows), voteRows));
-        setStrokes(strokeRows);
-        dispose = subscribeRemote({
-          onCard: (p) => {
-            if (p.eventType === 'DELETE') {
-              if (seedIds.has(p.old.id)) {
-                const fallback = seedCards.find((seed) => seed.id === p.old.id);
-                if (fallback) {
-                  setCards((prev) =>
-                    mergeVotes(
-                      prev.some((c) => c.id === fallback.id)
-                        ? prev.map((c) => (c.id === fallback.id ? fallback : c))
-                        : [...prev, fallback],
-                      votesRef.current
-                    )
-                  );
-                }
-              } else {
-                setCards((prev) => prev.filter((c) => c.id !== p.old.id));
-              }
-              return;
-            }
-            if (p.eventType === 'UPDATE' && isOwnEcho(p.new.id)) return; // 忽略自己的回广播
-            const card = applySeedImage({ ...p.new.data, id: p.new.id, owner: p.new.owner });
-            setCards((prev) =>
-              mergeVotes(
-                prev.some((c) => c.id === card.id)
-                  ? prev.map((c) => (c.id === card.id ? card : c))
-                  : [...prev, card],
-                votesRef.current
-              )
-            );
-          },
-          onStroke: (p) => {
-            if (p.eventType === 'DELETE') {
-              setStrokes((prev) => prev.filter((s) => s.id !== p.old.id));
-              return;
-            }
-            const stroke = { ...p.new.data, id: p.new.id, owner: p.new.owner };
-            setStrokes((prev) =>
-              prev.some((s) => s.id === stroke.id) ? prev : [...prev, stroke]
-            );
-          },
-          onVote: (p) => {
-            if (p.eventType === 'DELETE') {
-              votesRef.current = votesRef.current.filter(
-                (v) => !(v.card_id === p.old.card_id && v.voter === p.old.voter)
-              );
-            } else {
-              const row = p.new;
-              votesRef.current = [
-                ...votesRef.current.filter(
-                  (v) => !(v.card_id === row.card_id && v.voter === row.voter)
-                ),
-                row,
-              ];
-            }
-            setCards((prev) => mergeVotes(prev, votesRef.current));
-          },
-        });
-        flashStatus('已连接产品工作台 🌐 内容实时同步');
-        // 数据库缺少预制卡时，管理员首次到访时只补齐缺失的种子卡。
-        // 普通访客已经通过 buildRemoteCards 看到默认卡片，不会再出现空白白板。
-        const missingSeeds = seedCards.filter((seed) => !cardRows.some((card) => card.id === seed.id));
-        if (isAdm && missingSeeds.length) {
-          const seeds = missingSeeds.map((s) => ({
-            ...s,
-            owner: uid,
-            data: s.data?.options
-              ? { ...s.data, options: s.data.options.map((o) => ({ ...o, votes: [] })) }
-              : s.data,
-          }));
-          for (const c of seeds) {
-            try {
-              await insertCardRemote(c);
-            } catch {
-              /* 并发播种时忽略冲突 */
-            }
-          }
-          if (!cancelled) {
-            setCards((prev) =>
-              mergeVotes(
-                [...seeds, ...prev.filter((c) => !seeds.some((s) => s.id === c.id))],
-                votesRef.current
-              )
-            );
-          }
-        }
+        setCards(mergeVoteCounts(buildRemoteCards(cardRows), voteRows));
+        if (announce) flashStatus('已刷新审核通过的公开内容');
       } catch (e) {
-        console.warn('supabase 连接失败，回退到单机模式', e);
-        if (!cancelled) {
-          setCards(buildLocalCards());
-          setStrokes(loadLocalStrokes());
-          flashStatus('数据库未连接，本次是单机模式 📴');
-        }
+        console.warn('public wall refresh failed', e);
+        if (!cancelled && announce) flashStatus('公开内容暂时无法刷新，请稍后重试');
       }
-    })();
+    };
+    refresh();
+    const timer = window.setInterval(refresh, WB_CONFIG.REFRESH_MS);
     return () => {
       cancelled = true;
-      dispose?.();
+      window.clearInterval(timer);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [remoteMode, flashStatus]);
 
   // ---------- canvas: wheel zoom (non-passive) ----------
   React.useEffect(() => {
@@ -496,8 +388,7 @@ export default function WhiteboardApp() {
           return !hit;
         });
         if (removed.length) {
-          if (remoteRef.current) removed.forEach((id) => deleteStrokeRemote(id).catch(() => {}));
-          else saveLocalStrokes(next);
+          saveLocalStrokes(next);
         }
         return next;
       });
@@ -553,10 +444,9 @@ export default function WhiteboardApp() {
       if (s.points.length < 4) s.points.push(s.points[0] + 0.01, s.points[1] + 0.01); // 点
       setStrokes((prev) => {
         const next = [...prev, s];
-        if (!remoteRef.current) saveLocalStrokes(next);
+        saveLocalStrokes(next);
         return next;
       });
-      if (remoteRef.current) insertStrokeRemote(s).catch(() => {});
     };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
@@ -575,8 +465,7 @@ export default function WhiteboardApp() {
       const idx = prev.length - 1 - idxRev;
       const removed = prev[idx];
       const next = prev.filter((_, i) => i !== idx);
-      if (remoteRef.current) deleteStrokeRemote(removed.id).catch(() => {});
-      else saveLocalStrokes(next);
+      saveLocalStrokes(next);
       return next;
     });
   }, [myToken]);
@@ -666,9 +555,9 @@ export default function WhiteboardApp() {
     const card = cardsRef.current.find((c) => c.id === editing.id);
     if (card) {
       if (card.tpl) {
-        updateCard(editing.id, { data: withEditedText(card.tpl, card.data, editing.text) }, true);
+        updateCard(editing.id, { data: withEditedText(card.tpl, card.data, editing.text) });
       } else {
-        updateCard(editing.id, { text: editing.text }, true);
+        updateCard(editing.id, { text: editing.text });
       }
     }
     setEditing(null);
@@ -705,8 +594,47 @@ export default function WhiteboardApp() {
     });
   }, []);
 
+  // 移动端首次打开时，优先让可读的欢迎卡进入视野，避免先看到空白画布。
+  React.useEffect(() => {
+    const mobileMedia = window.matchMedia('(max-width: 768px)');
+    let frame;
+
+    const focusInitialMobileCard = () => {
+      if (!mobileMedia.matches || mobileViewInitializedRef.current) return;
+      const rect = canvasRef.current?.getBoundingClientRect();
+      const card = cardsRef.current.find((item) => item.id === 'seed-welcome') || cardsRef.current[0];
+      if (!rect || !card || rect.width <= 0 || rect.height <= 0) {
+        frame = window.requestAnimationFrame(focusInitialMobileCard);
+        return;
+      }
+
+      const nextScale = Math.min(0.82, (rect.width - 32) / (card.w || 300));
+      setScale(nextScale);
+      setPan({
+        x: rect.width / 2 - (card.x + (card.w || 300) / 2) * nextScale,
+        y: rect.height * 0.3 - (card.y + (card.h || 200) / 2) * nextScale,
+      });
+      mobileViewInitializedRef.current = true;
+    };
+
+    frame = window.requestAnimationFrame(focusInitialMobileCard);
+    mobileMedia.addEventListener('change', focusInitialMobileCard);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      mobileMedia.removeEventListener('change', focusInitialMobileCard);
+    };
+  }, []);
+
+  const chooseCardFromNavigator = React.useCallback(
+    (card) => {
+      focusCard(card);
+      setCardNavOpen(false);
+    },
+    [focusCard]
+  );
+
   // ---------- render ----------
-  const canEditCard = (card) => admin || card.owner === myToken;
+  const canEditCard = (card) => !remoteMode && (admin || card.owner === myToken);
 
   return (
     <div className="wb-app">
@@ -715,10 +643,20 @@ export default function WhiteboardApp() {
           <div className="wb-logo-icon" aria-label="Hresh赫什">赫</div>
           <span>Hresh赫什 · 产品工作台</span>
         </div>
-        <button className="wb-tb-btn wb-tb-primary" onClick={() => setModalOpen(true)}>
-          ✍️ 留言
+        <button
+          className="wb-tb-btn wb-tb-primary"
+          onClick={() => {
+            setModalStatus('');
+            setModalOpen(true);
+          }}
+        >
+          ✍️ {remoteMode ? '投稿' : '留言'}
         </button>
-        <button className="wb-tb-btn" onClick={() => setPickerOpen(true)} title="名片 / 贴纸 / 拍立得 / 投票">
+        <button
+          className="wb-tb-btn"
+          onClick={() => setPickerOpen(true)}
+          title={remoteMode ? '投稿名片或贴纸' : '名片 / 贴纸 / 拍立得 / 投票'}
+        >
           ＋ 贴一张
         </button>
         <button
@@ -727,10 +665,20 @@ export default function WhiteboardApp() {
             setDrawMode((d) => !d);
             setPen((p) => ({ ...p, eraser: false }));
           }}
-          title="在白板任意角落画画"
+          title={remoteMode ? '仅保存在当前浏览器，不会上传' : '在白板任意角落画画'}
         >
-          🖌️ 涂鸦
+          🖌️ {remoteMode ? '本地涂鸦' : '涂鸦'}
         </button>
+        <button
+          className="wb-tb-btn wb-mobile-card-nav"
+          type="button"
+          aria-expanded={cardNavOpen}
+          aria-controls="wb-mobile-card-drawer"
+          onClick={() => setCardNavOpen(true)}
+        >
+          ▤ 卡片
+        </button>
+        {remoteMode && <span className="wb-review-badge">审核后展示</span>}
         <div className="wb-tb-spacer" />
         <span className="wb-zoom-pct">{Math.round(scale * 100)}%</span>
         <button className="wb-tb-btn" onClick={() => setScale((s) => clamp(s * 0.9, 0.2, 3))} title="缩小">
@@ -749,13 +697,13 @@ export default function WhiteboardApp() {
           <div className="wb-left-title">✦ 卡片列表</div>
           <div className="wb-layer-list">
             {cards.map((c) => (
-              <div key={c.id} className="wb-layer-item" onClick={() => focusCard(c)}>
+              <button key={c.id} type="button" className="wb-layer-item" onClick={() => focusCard(c)}>
                 <span className="wb-layer-dot" style={{ background: c.color || c.data?.color || '#F4D758' }} />
                 <span className="wb-layer-name">{layerLabel(c)}</span>
                 <span className="wb-layer-owner">
                   {c.owner === myToken ? '我' : c.kind === 'seed' ? 'Hresh赫什' : '访客'}
                 </span>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -799,6 +747,38 @@ export default function WhiteboardApp() {
           </div>
         </div>
       </div>
+
+      {cardNavOpen && (
+        <div
+          className="wb-card-drawer-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setCardNavOpen(false);
+          }}
+        >
+          <section id="wb-mobile-card-drawer" className="wb-card-drawer" aria-label="卡片导航" role="dialog" aria-modal="true">
+            <div className="wb-card-drawer-head">
+              <div>
+                <span className="wb-card-drawer-kicker">工作台导航</span>
+                <h2>卡片列表</h2>
+              </div>
+              <button className="wb-card-drawer-close" type="button" onClick={() => setCardNavOpen(false)} aria-label="关闭卡片列表">
+                ×
+              </button>
+            </div>
+            <div className="wb-card-drawer-list">
+              {cards.map((card) => (
+                <button key={card.id} type="button" className="wb-layer-item" onClick={() => chooseCardFromNavigator(card)}>
+                  <span className="wb-layer-dot" style={{ background: card.color || card.data?.color || '#F4D758' }} />
+                  <span className="wb-layer-name">{layerLabel(card)}</span>
+                  <span className="wb-layer-owner">
+                    {card.owner === myToken ? '我' : card.kind === 'seed' ? 'Hresh赫什' : '访客'}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
 
       {drawMode && (
         <div className="wb-pen-bar">
@@ -845,10 +825,12 @@ export default function WhiteboardApp() {
         onClose={() => setModalOpen(false)}
         onSubmit={addMessage}
         status={modalStatus}
+        reviewMode={remoteMode}
       />
       <TemplatePicker
         open={pickerOpen}
         admin={admin}
+        reviewMode={remoteMode}
         onClose={() => setPickerOpen(false)}
         onPick={openCreateModal}
       />
@@ -859,6 +841,7 @@ export default function WhiteboardApp() {
         card={cardModal?.card}
         onClose={() => setCardModal(null)}
         onSubmit={submitCardModal}
+        reviewMode={remoteMode}
       />
 
       {qrSrc && (
@@ -884,6 +867,15 @@ function layerLabel(c) {
   if (c.tpl === 'vote') return `🗳️ ${c.data?.question || '投票'}`;
   if (c.kind === 'seed') return c.data?.title || c.data?.name || '卡片';
   return c.name ? `💬 ${c.name}` : '💬 匿名';
+}
+
+function humanizeWriteError(error) {
+  const message = String(error?.message || '');
+  if (/429|rate|频繁/i.test(message)) return '操作太频繁，请稍后再试。';
+  if (/queue|pending|review backlog/i.test(message)) return '待审核内容已满，投稿暂时关闭。';
+  if (/rejected|invalid form|expired/i.test(message)) return '提交未通过安全检查，请重新填写后再试。';
+  if (/disabled|关闭|503/i.test(message)) return '投稿通道暂时关闭，请稍后再来。';
+  return '提交失败，请稍后再试。';
 }
 
 // 从 (cx, cy) 附近向外环形搜索一个不覆盖任何现有卡片的空位

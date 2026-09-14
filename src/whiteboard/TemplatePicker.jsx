@@ -5,9 +5,15 @@ import { TEMPLATES } from './templates.jsx';
 // HIDDEN：不在菜单里出现（但已有卡片仍正常渲染）
 const HIDDEN_TPLS = ['profile', 'sticky', 'darkquote'];
 
-export default function TemplatePicker({ open, admin, onClose, onPick }) {
+export default function TemplatePicker({ open, admin, reviewMode, onClose, onPick }) {
   if (!open) return null;
-  const list = (admin ? TEMPLATES : TEMPLATES.filter((t) => t.visitor)).filter(
+  const list = (
+    reviewMode
+      ? TEMPLATES.filter((t) => ['intro', 'sticker'].includes(t.id))
+      : admin
+        ? TEMPLATES
+        : TEMPLATES.filter((t) => t.visitor)
+  ).filter(
     (t) => !HIDDEN_TPLS.includes(t.id)
   );
 
@@ -23,7 +29,9 @@ export default function TemplatePicker({ open, admin, onClose, onPick }) {
             </button>
           ))}
         </div>
-        {!admin && (
+        {reviewMode ? (
+          <div className="wb-picker-note">名片和贴纸会先进入审核区；本地涂鸦不会上传。</div>
+        ) : !admin && (
           <div className="wb-picker-note">创建后只有你能编辑/删除它 ✏️ 想随便画？点工具栏的 🖌️ 涂鸦</div>
         )}
         <div className="wb-modal-actions">

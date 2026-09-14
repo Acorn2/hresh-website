@@ -147,15 +147,16 @@ function PolaroidCard({ data }) {
 // 🗳️ 投票卡：单选，点一下投票，再点取消
 function VoteCard({ data, myToken, movedRef, onVote }) {
   const options = data?.options || [];
-  const total = options.reduce((s, o) => s + (o.votes?.length || 0), 0);
+  const countFor = (option) => option.voteCount ?? option.votes?.length ?? 0;
+  const total = options.reduce((sum, option) => sum + countFor(option), 0);
   return (
     <>
       <div className="vote-q">{data?.question}</div>
       <div className="vote-ops">
         {options.map((op, i) => {
-          const n = op.votes?.length || 0;
+          const n = countFor(op);
           const pct = total ? Math.round((n / total) * 100) : 0;
-          const mine = !!myToken && op.votes?.includes(myToken);
+          const mine = op.mine ?? (!!myToken && op.votes?.includes(myToken));
           return (
             <button
               key={i}
