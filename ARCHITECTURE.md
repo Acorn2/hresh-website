@@ -72,3 +72,24 @@
 - 立即止血：将 Edge Function 的 `WHITEBOARD_WRITE_ENABLED` 改为 `false`，公开读取仍可用。
 - 前端回退：将 `VITE_WHITEBOARD_MODE` 改为 `local`，网站恢复为单浏览器白板，不访问云端写接口。
 - 数据回退：旧表没有被删除；重新授权前必须重新评估匿名写入风险。
+
+---
+
+## SEO 静态产品页
+
+### 取：访客与爬虫如何获得结果
+
+1. 首页的产品卡保留交互式“作品档案”，并新增指向产品独立页的普通链接。
+2. 访问 `/products/` 可获取首批公开产品目录；访问 `/products/<slug>/` 可直接读取具体产品介绍；`/workbench/` 提供独立的工作台说明与画布入口。
+3. 搜索引擎从 `sitemap.xml` 发现静态页面，再沿页内产品关联链接继续抓取。
+
+### 存：事实来源与构建产物
+
+- `src/components/homeData.js`：已有产品事实、公开链接、封面和能力清单。
+- `src/seo/productPages.js`：仅保存产品 slug、搜索摘要、适用对象、应用类型与 FAQ。
+- `scripts/generate-product-pages.mjs`：构建时将两层资料合成为 `public/products/**/index.html`，并生成 `public/workbench/index.html`。
+- `public/seo/product-page.css`：独立页的无构建样式；`public/sitemap.xml`：已确认公开页的清单。
+
+### 进：变更与失败处理
+
+新增或下线产品时，先更新产品事实及 SEO 配置，再运行构建。若产品缺少公开入口或没有匹配的作品集数据，构建脚本报错而不是生成不完整页面。回退时移除对应 sitemap 条目与 SEO 配置，再重新构建；不删除产品原始作品资料。

@@ -2,6 +2,13 @@ let hasInitialized = false;
 
 export function initializeSite() {
   if (hasInitialized) return undefined;
+  // Fragments are one document and cannot have distinct SEO metadata. Forward
+  // legacy links to the corresponding crawlable, canonical URL.
+  var legacyRoute = { '#home': '/', '#works': '/products/', '#system': '/workbench/' }[window.location.hash];
+  if (legacyRoute) {
+    window.location.replace(legacyRoute);
+    return undefined;
+  }
   hasInitialized = true;
 
   const listenerRecords = [];

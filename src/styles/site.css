@@ -92,7 +92,7 @@ body {
   pointer-events: none;
   transform: translateX(-50%) translateY(16px);
 }
-.pill-nav button {
+.pill-nav a {
   font-family: 'Noto Sans SC', sans-serif;
   font-size: 13px;
   font-weight: 500;
@@ -104,13 +104,14 @@ body {
   cursor: pointer;
   transition: all 0.25s ease;
   white-space: nowrap;
+  text-decoration: none;
 }
-.pill-nav button:hover { color: var(--night-text); }
-.pill-nav button.active {
+.pill-nav a:hover { color: var(--night-text); }
+.pill-nav a.active {
   background: #303338;
   color: var(--yellow);
 }
-.pill-nav button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 3px; }
+.pill-nav a:focus-visible { outline: 2px solid var(--yellow); outline-offset: 3px; }
 .pill-nav .pill-num {
   font-family: 'Fira Code', monospace;
   font-size: 10px;
@@ -332,8 +333,8 @@ body {
   color: var(--night-text);
 }
 .desktop-eyebrow { color: var(--term-accent); font: 10px 'Fira Code', monospace; margin-bottom: 16px; }
-.desktop-intro h1 { font: 600 76px/1.12 'Noto Sans SC', sans-serif; letter-spacing: 0; }
-.desktop-intro h1 > span:first-child { font-size: 42px; margin-left: 18px; font-weight: 400; }
+.desktop-name { font: 600 76px/1.12 'Noto Sans SC', sans-serif; letter-spacing: 0; }
+.desktop-name > span:first-child { font-size: 42px; margin-left: 18px; font-weight: 400; }
 .desktop-intro .identity-dot { color: var(--yellow); }
 .desktop-tagline { margin-top: 16px; font-size: 19px; color: #BCC3CD; }
 .desktop-works-link { display: inline-flex; align-items: center; gap: 22px; min-height: 44px; margin-top: 8px; color: var(--night-text); font-size: 13px; text-decoration: none; }
@@ -1812,6 +1813,22 @@ body {
   gap: 10px;
   margin-top: 18px;
 }
+.product-footer-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.product-seo-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 7px 10px;
+  border: 1px solid rgba(43,127,216,0.2);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--blue);
+  font: 600 12px 'Noto Sans SC', sans-serif;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+.product-seo-link:hover, .product-seo-link:focus-visible { background: rgba(43,127,216,0.11); border-color: rgba(43,127,216,0.4); transform: translateY(-1px); }
+.product-seo-link span { font-family: 'Fira Code', monospace; }
 .product-detail-trigger {
   min-height: 38px;
   padding: 7px 10px;
@@ -1860,11 +1877,12 @@ body {
 .product-qr-dialog p { margin: 14px 0 0; color: var(--ink-light); font-size: 13px; }
 .product-qr-close { position: absolute; top: 8px; right: 10px; width: 36px; height: 36px; border: 0; border-radius: 50%; background: transparent; color: var(--ink-light); font-size: 24px; line-height: 1; cursor: pointer; }
 .product-qr-close:hover { background: var(--cream); color: var(--ink); }
-.product-dossier-overlay { position: fixed; z-index: 1001; inset: 0; display: grid; place-items: center; padding: 24px; overflow: auto; background: rgba(27, 32, 45, 0.52); backdrop-filter: blur(9px); }
+.product-dossier-overlay { position: fixed; z-index: 1001; inset: 0; display: grid; place-items: center; padding: 24px; overflow: auto; overscroll-behavior: contain; background: rgba(27, 32, 45, 0.52); backdrop-filter: blur(9px); }
 .product-dossier { width: min(100%, 1080px); max-height: min(860px, calc(100svh - 48px)); overflow: hidden; border: 1px solid rgba(26,26,46,0.1); border-radius: 18px; background: #fffdf7; box-shadow: 0 32px 110px rgba(16,25,44,0.36); }
 .product-dossier-topbar { height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px 0 18px; border-bottom: 1px solid rgba(26,26,46,0.08); background: #f5f0e6; color: #71809a; font: 11px 'Fira Code', monospace; letter-spacing: 0.04em; }
 .product-dossier-close { width: 44px; height: 44px; border: 0; border-radius: 50%; background: transparent; color: #596172; font: 28px/1 sans-serif; cursor: pointer; }
 .product-dossier-close:hover { background: rgba(26,26,46,0.07); color: var(--ink); }
+.product-dossier-close:focus-visible { outline: 3px solid var(--blue); outline-offset: -3px; }
 .product-dossier-scroll { max-height: calc(min(860px, 100svh - 48px) - 44px); overflow: auto; }
 .product-dossier-hero { display: grid; grid-template-columns: minmax(0, .88fr) minmax(0, 1.12fr); min-height: 390px; }
 .product-dossier-main { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: clamp(30px, 5vw, 58px); background: radial-gradient(circle at 13% 10%, rgba(244,215,88,0.2), transparent 30%), #fffdf7; }
@@ -1946,7 +1964,7 @@ body {
   .term-gold { font-size: 11px; }
 
   .pill-nav { bottom: 16px; }
-  .pill-nav button { font-size: 12px; padding: 8px 13px; }
+  .pill-nav a { font-size: 12px; padding: 8px 13px; }
   .pill-nav .pill-num { display: none; }
 
   .canvas-hint { display: none; } /* canvas already shows its own help hint */
@@ -1965,6 +1983,7 @@ body {
   .work-dim { min-height: 0; }
   .work-dim-content { padding: 22px 20px 24px; }
   .product-footer { align-items: flex-start; flex-direction: column; }
+  .product-footer-actions { justify-content: flex-start; }
   .product-access { justify-content: flex-start; }
   .product-link { min-height: 44px; box-sizing: border-box; }
   .product-link.muted { min-height: 0; }
@@ -2026,8 +2045,8 @@ body {
 @media (max-width: 1100px) {
   .desktop-surface { height: auto; min-height: calc(100svh - 30px); padding: 36px 24px 290px; }
   .desktop-intro { position: relative; top: auto; left: auto; }
-  .desktop-intro h1 { font-size: 54px; }
-  .desktop-intro h1 > span:first-child { font-size: 32px; margin-left: 12px; }
+  .desktop-name { font-size: 54px; }
+  .desktop-name > span:first-child { font-size: 32px; margin-left: 12px; }
   .desktop-tagline { font-size: 17px; }
   .desktop-icons { position: relative; inset: auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(76px, 1fr)); gap: 16px 10px; max-width: 440px; }
   .desktop-icons .dicon { position: relative; inset: auto !important; width: 100%; min-width: 0; min-height: 88px; padding: 6px 2px; }
@@ -2054,8 +2073,8 @@ body {
     min-height: calc(100svh - 44px);
     padding: 22px 16px 174px;
   }
-  .desktop-intro h1 { font-size: clamp(2.4rem, 12vw, 2.8rem); }
-  .desktop-intro h1 > span:first-child { font-size: 0.62em; margin-left: 8px; }
+  .desktop-name { font-size: clamp(2.4rem, 12vw, 2.8rem); }
+  .desktop-name > span:first-child { font-size: 0.62em; margin-left: 8px; }
   .desktop-eyebrow { margin-bottom: 10px; font-size: 9px; }
   .desktop-tagline { margin-top: 10px; font-size: 16px; }
   .desktop-works-link { gap: 12px; min-height: 44px; margin-top: 4px; font-size: 14px; }
@@ -2083,7 +2102,7 @@ body {
   .character-greeting-label { max-width: 7.5rem; overflow: hidden; text-overflow: ellipsis; }
 
   .pill-nav { bottom: max(12px, env(safe-area-inset-bottom)); padding: 4px; }
-  .pill-nav button { min-height: 44px; padding: 0 14px; font-size: 13px; }
+  .pill-nav a { min-height: 44px; padding: 0 14px; font-size: 13px; }
 }
 
 /* Reduced motion */

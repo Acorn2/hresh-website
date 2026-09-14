@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   desktopIcons,
   wallpaperStars,
   workflowColumns,
   portfolioProducts,
 } from './homeData';
+import { getProductPage } from '../seo/productPages';
+import { setupModalFocus } from '../lib/modalA11y';
 
 const wallpaperStarGlyphs = ['·', '·', '·', '·', '✦', '·', '·', '·'];
 const publicPortfolioProducts = portfolioProducts.filter((product) => product.status !== '已完成 · 暂未上线');
@@ -59,7 +62,7 @@ function IconGlyph({ kind }) {
 }
 
 function ProductIndexItem({ product }) {
-  const href = product.links?.[0]?.href || '#works';
+  const href = getProductPage(product.name)?.path || product.links?.[0]?.href || '/products/';
   const isInternal = href.startsWith('#');
 
   return (
@@ -98,8 +101,8 @@ function WindowTemplates() {
               </div>
             </div>
             <div className="sayhi-links">
-              <span>📦 <a href="#works">查看产品作品集</a></span>
-              <span>🧭 <a href="#system">打开产品工作台</a></span>
+              <span>📦 <a href="/products/">查看产品作品集</a></span>
+              <span>🧭 <a href="/workbench/">打开产品工作台</a></span>
             </div>
           </div>
         </div>
@@ -110,7 +113,7 @@ function WindowTemplates() {
           <div className="os-body win-folder">
             <div className="folder-index-heading">
               <div><span>PUBLIC PRODUCTS</span><strong>{publicPortfolioProducts.length} 个已上线作品</strong></div>
-              <a href="#works">查看完整档案 ↗</a>
+              <a href="/products/">查看完整档案 ↗</a>
             </div>
             {publicPortfolioProducts.map((product) => <ProductIndexItem key={product.name} product={product} />)}
           </div>
@@ -204,9 +207,9 @@ function HomeTab() {
         <h1 id="site-heading">Hresh赫什：用 AI 把想法做成产品</h1>
         <p>Hresh赫什是一名独立开发者，从需求、设计到上线实践产品，持续分享 AI 开发、效率工具与产品冷启动。</p>
         <nav aria-label="网站主要内容">
-          <a href="#works">Hresh赫什产品矩阵</a>
-          <a href="#works">独立产品作品集</a>
-          <a href="#system">产品工作台</a>
+          <a href="/products/">Hresh赫什产品矩阵</a>
+          <a href="/products/">独立产品作品集</a>
+          <a href="/workbench/">产品工作台</a>
           <a href="https://www.tongliaouniverse.cn">通辽宇宙知识库</a>
           <a href="https://www.readcover.cn">ReadCover 阅读掩护</a>
         </nav>
@@ -228,9 +231,9 @@ function HomeTab() {
         <div className="desktop-surface" id="desktopSurface">
           <div className="desktop-intro">
             <p className="desktop-eyebrow">INDEPENDENT DEVELOPER / AI BUILDER</p>
-            <h1>Hresh<span>赫什</span><span className="identity-dot" aria-hidden="true">.</span></h1>
+            <p className="desktop-name" aria-hidden="true">Hresh<span>赫什</span><span className="identity-dot">.</span></p>
             <p className="desktop-tagline">用 AI 把想法做成产品。</p>
-            <a className="desktop-works-link" href="#works">探索我的作品 <span aria-hidden="true">↗</span></a>
+            <a className="desktop-works-link" href="/products/">探索我的作品 <span aria-hidden="true">↗</span></a>
           </div>
           {wallpaperStars.map((style, index) => {
             const glyphIndex = index % wallpaperStarGlyphs.length;
@@ -271,7 +274,7 @@ function HomeTab() {
               <div className="goodbye-titlebar"><span className="terminal-dot red"></span><span className="terminal-dot yellow"></span><span className="terminal-dot green"></span><span className="goodbye-title-text">hresh@workbench ~ zsh</span></div>
               <div className="goodbye-body"><div className="goodbye-terminal">
                 <div className="gt-line"><span className="gt-prompt">$ </span><span className="gt-cmd">echo "see you"</span></div><div className="gt-line gt-output">See you next time.</div><div className="gt-line">&nbsp;</div>
-                <div className="gt-line"><span className="gt-prompt">$ </span><span className="gt-cmd">cat contact.md</span></div><div className="gt-line gt-output">📦 <a href="#works">查看产品作品集</a></div><div className="gt-line gt-output">🧭 <a href="#system">打开产品工作台</a></div><div className="gt-line">&nbsp;</div>
+                <div className="gt-line"><span className="gt-prompt">$ </span><span className="gt-cmd">cat contact.md</span></div><div className="gt-line gt-output">📦 <a href="/products/">查看产品作品集</a></div><div className="gt-line gt-output">🧭 <a href="/workbench/">打开产品工作台</a></div><div className="gt-line">&nbsp;</div>
                 <div className="gt-line"><span className="gt-prompt">$ </span><span className="gt-cmd">fortune</span></div><div className="gt-line gt-dim">“想要和得到，中间还有两个字，那就是要做到。你只有做到，才能得到。”</div><div className="gt-line">&nbsp;</div>
                 <div className="gt-line"><span className="gt-prompt">$ </span><span className="gt-cmd">exit</span></div><div className="gt-line gt-output"><span className="gt-gold">[Process completed]</span></div>
               </div></div>
@@ -312,23 +315,34 @@ const productScreenshots = {
   TabNest: '/works/tabnest.png',
 };
 
-function ProductDossier({ product, index, onClose }) {
+function ProductDossier({ product, index, onClose, restoreFocus }) {
   const screenshot = productScreenshots[product.name];
   const highlights = product.highlights || ['产品结构待持续整理', '作品档案持续补全'];
+  const dialogRef = useRef(null);
+  const closeRef = useRef(null);
+  const titleId = `product-dossier-title-${index}`;
+  const descriptionId = `product-dossier-description-${index}`;
 
-  return <div className="product-dossier-overlay" role="presentation" onClick={onClose}>
-    <section className="product-dossier" role="dialog" aria-modal="true" aria-labelledby="product-dossier-title" onClick={(event) => event.stopPropagation()}>
+  useEffect(() => setupModalFocus({
+    container: dialogRef.current,
+    initialFocus: closeRef,
+    onEscape: onClose,
+    restoreFocus,
+  }), [onClose, restoreFocus]);
+
+  return createPortal(<div className="product-dossier-overlay" role="presentation" onClick={onClose}>
+    <section ref={dialogRef} className="product-dossier" role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={descriptionId} tabIndex={-1} onClick={(event) => event.stopPropagation()}>
       <div className="product-dossier-topbar">
         <span>works / {String(index + 1).padStart(2, '0')}</span>
-        <button className="product-dossier-close" type="button" aria-label="关闭作品详情" onClick={onClose}>×</button>
+        <button ref={closeRef} className="product-dossier-close" type="button" aria-label="关闭作品详情" onClick={onClose}>×</button>
       </div>
       <div className="product-dossier-scroll">
         <div className="product-dossier-hero">
           <div className="product-dossier-main">
             <p className="product-dossier-index">PRODUCT DOSSIER — {String(index + 1).padStart(2, '0')}</p>
-            <h2 id="product-dossier-title">{product.name}</h2>
+            <h2 id={titleId}>{product.name}</h2>
             <p className="product-dossier-category">{product.category}</p>
-            <p className="product-dossier-description">{product.description}</p>
+            <p id={descriptionId} className="product-dossier-description">{product.description}</p>
             <div className="product-dossier-actions">
               <ProductAccess product={product} />
               <span className="product-status">{product.status}</span>
@@ -348,7 +362,7 @@ function ProductDossier({ product, index, onClose }) {
         </section>}
       </div>
     </section>
-  </div>;
+  </div>, document.body);
 }
 
 function ProductInlineQr({ product }) {
@@ -386,12 +400,20 @@ function ProductAccess({ product }) {
 
 function WorksTab() {
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const restoreFocus = useRef(null);
+
+  const openProduct = useCallback((product, index, event) => {
+    restoreFocus.current = event.currentTarget;
+    setSelectedProduct({ product, index });
+  }, []);
+
+  const closeProduct = useCallback(() => setSelectedProduct(null), []);
 
   return (
     <main className="tab-page" id="page-works">
-      <div className="works-page">
+      <div className="works-page" id="works">
         <div className="workflow-screen">
-          <h1 className="workflow-headline">1 Person + AI = 1 Team</h1>
+          <h2 className="workflow-headline">1 Person + AI = 1 Team</h2>
           <p className="workflow-subtitle">Hresh赫什 · 用 AI 把想法做成产品的独立开发者</p>
           <div className="workflow-columns">
             {workflowColumns.map((column) => <div className="workflow-col" key={column.title}><div className="workflow-col-title">{column.title}</div><div className="workflow-col-line"></div>{column.items.map(([label, description]) => <div className="workflow-item" key={label}><span className="workflow-item-label">{label}</span><span className="workflow-item-desc">{description}</span></div>)}</div>)}
@@ -400,30 +422,30 @@ function WorksTab() {
         <div className="section-label" style={{ marginTop: '64px' }}>ls works/</div><h2 className="section-heading">作品集</h2>
         <div className="works-grid">
           {portfolioProducts.map((product, index) => <article className="work-dim" key={product.name}>
-            <button className="product-card-cover" type="button" onClick={() => setSelectedProduct({ product, index })} aria-label={`查看${product.name}作品档案`}>
+            <button className="product-card-cover" type="button" onClick={(event) => openProduct(product, index, event)} aria-label={`查看${product.name}作品档案`}>
               <ProductCover product={product} />
               <span>打开档案 <b aria-hidden="true">↗</b></span>
             </button>
             <div className="work-dim-content"><div className="dim-num">product_{String(index + 1).padStart(2, '0')}</div><h3>{product.name}</h3><div className="product-category">{product.category}</div><p className="dim-desc">{product.description}</p>
             {product.highlights && <ul className="product-highlights">{product.highlights.map((highlight) => <li key={highlight}>{highlight}</li>)}</ul>}
-            <div className="product-footer"><span className="product-status">{product.status}</span><button className="product-detail-trigger" type="button" onClick={() => setSelectedProduct({ product, index })}>查看作品档案 <span aria-hidden="true">→</span></button></div></div>
+            <div className="product-footer"><span className="product-status">{product.status}</span><div className="product-footer-actions">{getProductPage(product.name) && <a className="product-seo-link" href={getProductPage(product.name).path}>产品介绍 <span aria-hidden="true">↗</span></a>}<button className="product-detail-trigger" type="button" onClick={(event) => openProduct(product, index, event)}>查看作品档案 <span aria-hidden="true">→</span></button></div></div></div>
           </article>)}
         </div>
-        {selectedProduct && <ProductDossier product={selectedProduct.product} index={selectedProduct.index} onClose={() => setSelectedProduct(null)} />}
+        {selectedProduct && <ProductDossier product={selectedProduct.product} index={selectedProduct.index} onClose={closeProduct} restoreFocus={restoreFocus} />}
       </div>
     </main>
   );
 }
 
 function SystemTab() {
-  return <main className="tab-page" id="page-system"><div className="canvas-page"><iframe data-src="/whiteboard.html" id="canvasFrame" title="Hresh赫什的产品工作台"></iframe><div className="canvas-hint">Scroll 缩放 · Drag 移动画布</div></div></main>;
+  return <main className="tab-page" id="page-system"><div className="canvas-page" id="system"><iframe data-src="/whiteboard.html" id="canvasFrame" title="Hresh赫什的产品工作台"></iframe><div className="canvas-hint">Scroll 缩放 · Drag 移动画布</div></div></main>;
 }
 
 export default function HomePage() {
   return (
     <>
       <div className="transition-overlay" id="transitionOverlay"></div>
-      <nav className="pill-nav hidden-during-intro" id="pillNav"><button data-tab="home" className="active"><span className="pill-num">01</span>主页</button><button data-tab="works"><span className="pill-num">02</span>产品</button><button data-tab="system"><span className="pill-num">03</span>工作台</button></nav>
+      <nav className="pill-nav hidden-during-intro" id="pillNav"><a href="/" className="active" aria-current="page"><span className="pill-num">01</span>主页</a><a href="/products/"><span className="pill-num">02</span>产品</a><a href="/workbench/"><span className="pill-num">03</span>工作台</a></nav>
       <HomeTab />
       <WorksTab />
       <SystemTab />
