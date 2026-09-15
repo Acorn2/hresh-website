@@ -125,31 +125,6 @@ function renderProductPage(page, product) {
 </html>`;
 }
 
-function renderIndexPage(items) {
-  const cards = items.map(({ page, product }) => `<article><a href="${page.path}"><img src="${escapeHtml(product.cover)}" alt="${escapeHtml(`${product.name} 功能插图`)}" loading="lazy" width="1440" height="900" /><p>${escapeHtml(product.category)}</p><h2>${escapeHtml(product.name)}</h2><span>查看产品介绍 →</span></a></article>`).join('');
-  const canonical = `${siteUrl}/products/`;
-  const structuredData = {
-    '@context': 'https://schema.org',
-    '@type': 'CollectionPage',
-    '@id': `${canonical}#collection`,
-    url: canonical,
-    name: 'Hresh赫什产品作品集',
-    inLanguage: 'zh-CN',
-    mainEntity: {
-      '@type': 'ItemList',
-      numberOfItems: items.length,
-      itemListElement: items.map(({ page, product }, index) => ({
-        '@type': 'ListItem',
-        position: index + 1,
-        name: product.name,
-        url: pageUrl(page.path),
-      })),
-    },
-  };
-  return `<!doctype html>
-<html lang="zh-CN"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="description" content="Hresh赫什的公开产品索引：从网页、iOS 应用到 Chrome 扩展，持续把真实问题做成可用产品。" /><meta name="robots" content="index,follow" /><link rel="canonical" href="${canonical}" /><meta property="og:type" content="website" /><meta property="og:locale" content="zh_CN" /><meta property="og:title" content="产品作品集｜Hresh赫什" /><meta property="og:description" content="查看 Hresh赫什的公开产品与独立介绍。" /><meta property="og:url" content="${canonical}" /><script type="application/ld+json">${escapeJson(structuredData)}</script><title>产品作品集｜Hresh赫什</title><link rel="icon" type="image/png" href="/optimized/hresh-favicon.png" /><link rel="stylesheet" href="/seo/product-page.css" /></head><body><header class="site-header"><a class="brand" href="/">Hresh<span>赫什</span></a><nav aria-label="主要导航"><a href="/">首页</a><a href="/products/" aria-current="page">产品</a><a href="/workbench/">工作台</a></nav></header><main><section class="listing-hero"><p class="eyebrow">PRODUCT DIRECTORY</p><h1>把真实问题做成产品</h1><p>这里收录已经公开、并有独立介绍页面的产品。每个页面都解释它解决的问题、适用的人和实际入口。</p></section><section class="product-grid" aria-label="产品列表">${cards}</section></main><footer>Hresh赫什 · 用 AI 把想法做成产品</footer></body></html>`;
-}
-
 function renderWorkbenchPage() {
   const canonical = `${siteUrl}/workbench/`;
   const description = 'Hresh赫什的产品工作台：把独立开发中的想法、产品、反馈和下一步，整理为一张可持续更新的视觉化工作地图。';
@@ -194,16 +169,94 @@ function renderWorkbenchPage() {
         background: #fff9ec;
       }
 
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      }
+
       iframe {
         display: block;
         width: 100%;
-        height: 100%;
+        height: 100dvh;
         border: 0;
+      }
+
+      .pill-nav {
+        position: fixed;
+        bottom: max(24px, env(safe-area-inset-bottom));
+        left: 50%;
+        z-index: 10;
+        display: flex;
+        gap: 4px;
+        padding: 5px;
+        border: 1px solid rgba(255, 249, 236, 0.16);
+        border-radius: 999px;
+        background: #17191d;
+        box-shadow: 0 8px 32px rgba(33, 30, 26, 0.18);
+        transform: translateX(-50%);
+      }
+
+      .pill-nav a {
+        min-height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 18px;
+        border-radius: 999px;
+        color: #9ca0a8;
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .pill-nav a:hover,
+      .pill-nav a:focus-visible {
+        color: #f5f0e6;
+      }
+
+      .pill-nav a:focus-visible {
+        outline: 2px solid #f5d84c;
+        outline-offset: 3px;
+      }
+
+      .pill-nav a.active {
+        background: #303338;
+        color: #f5d84c;
+      }
+
+      .pill-num {
+        margin-right: 5px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 10px;
+        opacity: 0.75;
+      }
+
+      @media (max-width: 760px) {
+        .pill-nav {
+          bottom: max(12px, env(safe-area-inset-bottom));
+          padding: 4px;
+        }
+
+        .pill-nav a {
+          min-height: 44px;
+          padding: 0 14px;
+          font-size: 13px;
+        }
+
+        .pill-num {
+          display: none;
+        }
       }
     </style>
   </head>
   <body>
     <iframe src="/whiteboard.html" title="Hresh赫什的产品工作台"></iframe>
+    <nav class="pill-nav" aria-label="主要导航">
+      <a href="/"><span class="pill-num">01</span>主页</a>
+      <a href="/products/"><span class="pill-num">02</span>产品</a>
+      <a href="/workbench/" class="active" aria-current="page"><span class="pill-num">03</span>工作台</a>
+    </nav>
   </body>
 </html>`;
 }
@@ -220,9 +273,8 @@ await Promise.all(items.map(async ({ page, product }) => {
   await mkdir(directory, { recursive: true });
   await writeFile(resolve(directory, 'index.html'), renderProductPage(page, product));
 }));
-await writeFile(resolve(outputRoot, 'index.html'), renderIndexPage(items));
 const workbenchDirectory = resolve(process.cwd(), 'public', 'workbench');
 await mkdir(workbenchDirectory, { recursive: true });
 await writeFile(resolve(workbenchDirectory, 'index.html'), renderWorkbenchPage());
 
-console.log(`Generated ${items.length} product pages, the product index, and the workbench page.`);
+console.log(`Generated ${items.length} product pages and the workbench page.`);

@@ -83,7 +83,10 @@ export function initializeSite() {
 
   function currentTab() {
     var h = location.hash.replace('#', '');
-    return TABS.indexOf(h) >= 0 ? h : 'home';
+    if (TABS.indexOf(h) >= 0) return h;
+    if (location.pathname === '/products/' || location.pathname === '/products') return 'works';
+    if (location.pathname === '/workbench/' || location.pathname === '/workbench') return 'system';
+    return 'home';
   }
 
   function applyScrollLock() {
@@ -96,8 +99,16 @@ export function initializeSite() {
     TABS.forEach(function(t) {
       document.getElementById('page-' + t).classList.toggle('active', t === tab);
     });
-    pillNav.querySelectorAll('button').forEach(function(b) {
-      b.classList.toggle('active', b.dataset.tab === tab);
+    pillNav.querySelectorAll('a, button').forEach(function(item) {
+      var itemTab = item.dataset.tab;
+      if (!itemTab) {
+        var path = new URL(item.getAttribute('href'), location.origin).pathname;
+        itemTab = path === '/products/' ? 'works' : path === '/workbench/' ? 'system' : 'home';
+      }
+      var active = itemTab === tab;
+      item.classList.toggle('active', active);
+      if (active) item.setAttribute('aria-current', 'page');
+      else item.removeAttribute('aria-current');
     });
     if (tab === 'system' && !canvasLoaded) {
       canvasFrame.src = canvasFrame.dataset.src;
@@ -181,7 +192,10 @@ export function initializeSite() {
     try { localStorage.setItem(VISITED_KEY, '1'); } catch (e) {}
   }
 
-  if (isReturnVisitor) {
+  if (currentTab() !== 'home') {
+    terminalData.forEach(function(item) { renderLine(item).classList.add('visible'); });
+    finishIntro();
+  } else if (isReturnVisitor) {
     // Return visitor: terminal shows instantly (no typing), then auto zoom into desktop
     terminalData.forEach(function(item) { renderLine(item).classList.add('visible'); });
     finishIntro();
