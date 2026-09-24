@@ -5,3 +5,4 @@ dist/
 archive/
 .env.local
 .env.*.local
+docs/images/

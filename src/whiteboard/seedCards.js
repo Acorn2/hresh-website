@@ -104,7 +104,7 @@ export const seedCards = [
     kind: 'seed',
     owner: 'hresh',
     tpl: 'polaroid',
-    data: { image: '/nature-museum-icon.webp', caption: '儿童 3D 自然博物馆：亲子自然探索' },
+    data: { image: '/nature-museum-icon.png', caption: '儿童 3D 自然博物馆：亲子自然探索' },
     x: 1183,
     y: 830,
     w: 230,

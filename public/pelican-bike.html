@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>鹈鹕骑自行车</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, -apple-system, "PingFang SC", sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; overflow: hidden; background: #f7efe4; color: #17324d; }
+    .scene { width: min(100vw, 1100px); aspect-ratio: 16 / 9; position: relative; overflow: hidden; background: #bfeaf0; border: 8px solid #17324d; border-radius: 22px; box-shadow: 0 18px 0 #17324d; }
+    .caption { position: absolute; z-index: 2; top: 24px; left: 30px; font-size: clamp(16px, 2vw, 24px); font-weight: 800; letter-spacing: .04em; }
+    .caption small { display: block; margin-top: 3px; color: #39657a; font-size: .55em; font-weight: 600; }
+    svg { width: 100%; height: 100%; display: block; }
+    .wheel { transform-box: fill-box; transform-origin: center; animation: spin 1.4s linear infinite; }
+    .pedal { transform-box: fill-box; transform-origin: center; animation: spin 1.4s linear infinite reverse; }
+    .body-bob { animation: bob .7s ease-in-out infinite alternate; transform-origin: 50% 80%; }
+    .leg { transform-box: fill-box; transform-origin: top center; animation: pedal-leg .7s ease-in-out infinite alternate; }
+    .leg.back { animation-delay: -.35s; }
+    .cloud { animation: drift 18s linear infinite; }
+    .cloud.two { animation-duration: 24s; animation-delay: -9s; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes bob { to { transform: translateY(3px) rotate(-1deg); } }
+    @keyframes pedal-leg { to { transform: rotate(18deg); } }
+    @keyframes drift { from { transform: translateX(-12%); } to { transform: translateX(115%); } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-play-state: paused !important; } }
+  </style>
+</head>
+<body>
+  <main class="scene" aria-label="一只鹈鹕骑自行车的二维动画">
+    <div class="caption">海风骑行社<small>今天也要慢慢骑</small></div>
+    <svg viewBox="0 0 960 540" role="img" aria-labelledby="title desc">
+      <title id="title">鹈鹕骑自行车</title><desc id="desc">一只戴着红色帽子的鹈鹕正在海边骑蓝色自行车。</desc>
+      <rect width="960" height="540" fill="#bfeaf0"/>
+      <circle cx="790" cy="112" r="54" fill="#ffd66e"/>
+      <g class="cloud" fill="#fff9ed" opacity=".9"><path d="M55 135c0-22 28-35 47-20 13-30 62-24 67 11 22-10 47 5 47 29H55c-8-5-9-12 0-20Z"/><path d="M690 185c0-18 24-29 40-16 11-25 51-20 55 9 18-8 38 4 38 24H690c-7-4-7-10 0-17Z"/></g>
+      <path d="M0 330 Q150 285 310 325 T620 318 T960 330 V540H0Z" fill="#70c9c7"/>
+      <path d="M0 365 Q170 340 350 367 T700 360 T960 370 V540H0Z" fill="#4fa9b0"/>
+      <path d="M0 438 Q190 400 390 430 T760 425 T960 435 V540H0Z" fill="#f7d79d"/>
+      <path d="M0 477 Q210 445 410 478 T760 470 T960 480" fill="none" stroke="#dfad6f" stroke-width="8" opacity=".7"/>
+      <g transform="translate(340 245)">
+        <g class="wheel" fill="none" stroke="#17324d" stroke-width="9"><circle cx="0" cy="170" r="63"/><path d="M0 107v126M-63 170H63M-45 125l90 90M45 125l-90 90" stroke-width="3" opacity=".55"/></g>
+        <g class="wheel" transform="translate(260 170)" fill="none" stroke="#17324d" stroke-width="9"><circle r="63"/><path d="M0-63v126M-63 0H63M-45-45l90 90M45-45l-90 90" stroke-width="3" opacity=".55"/></g>
+        <path d="M0 170 86 72l82 98H0Zm86-98 75 0 39 98" fill="none" stroke="#246b84" stroke-width="11" stroke-linejoin="round"/>
+        <path d="M75 75h28M176 66l22-29" stroke="#17324d" stroke-width="10" stroke-linecap="round"/>
+        <g class="pedal" transform="translate(86 170)"><circle r="14" fill="#ffd66e" stroke="#17324d" stroke-width="5"/><path d="M0 0 25-14M0 0-20 17" stroke="#17324d" stroke-width="6" stroke-linecap="round"/></g>
+        <g class="body-bob">
+          <ellipse cx="103" cy="67" rx="67" ry="51" fill="#f6f1df" stroke="#17324d" stroke-width="8"/>
+          <path d="M69 85 42 126" stroke="#e3a85e" stroke-width="14" stroke-linecap="round"/>
+          <path class="leg" d="M96 100 80 157" stroke="#e3a85e" stroke-width="14" stroke-linecap="round"/><path class="leg back" d="M124 102 148 154" stroke="#e3a85e" stroke-width="14" stroke-linecap="round"/>
+          <circle cx="158" cy="35" r="37" fill="#f6f1df" stroke="#17324d" stroke-width="8"/>
+          <path d="M180 48 246 66 181 78Z" fill="#e98c54" stroke="#17324d" stroke-width="7" stroke-linejoin="round"/>
+          <circle cx="169" cy="27" r="6" fill="#17324d"/>
+          <path d="M129 10c6-29 48-29 58 0-17 9-40 9-58 0Z" fill="#e96755" stroke="#17324d" stroke-width="7"/>
+          <path d="M80 41 45 6" stroke="#f6f1df" stroke-width="22" stroke-linecap="round"/><path d="M79 42 45 6" stroke="#17324d" stroke-width="7" stroke-linecap="round"/>
+        </g>
+        <path d="M159 72 175 41" stroke="#17324d" stroke-width="9" stroke-linecap="round"/>
+      </g>
+      <g fill="#fff9ed" opacity=".85"><path d="M120 420c0-9 12-15 21-8 5-13 27-10 29 5 10-4 20 2 20 12h-70Z"/><path d="M780 405c0-8 10-13 18-7 5-11 23-9 25 4 8-4 18 2 18 10h-61Z"/></g>
+    </svg>
+  </main>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>鹈鹕的海边骑行</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; min-height: 100%; }
+    body { background: #dceeea; overflow: hidden; }
+    main { width: 100%; height: 100vh; height: 100svh; display: grid; place-items: center; }
+    svg { display: block; width: 100%; height: 100%; }
+    .ink { stroke: #263e3d; stroke-linecap: round; stroke-linejoin: round; }
+    .clouds { animation: clouds 48s linear infinite; }
+    .water { animation: water 9s linear infinite; }
+    .road { animation: road 2s linear infinite; }
+    .rider { animation: bob 700ms ease-in-out infinite alternate; }
+    .scarf { transform-origin: 605px 282px; animation: flutter 700ms ease-in-out infinite alternate; }
+    .eye { transform-box: fill-box; transform-origin: center; animation: blink 5s infinite; }
+    @keyframes clouds { to { transform: translateX(-1200px); } }
+    @keyframes water { to { transform: translateX(-300px); } }
+    @keyframes road { to { transform: translateX(-300px); } }
+    @keyframes bob { to { transform: translateY(3px); } }
+    @keyframes flutter { to { transform: rotate(8deg); } }
+    @keyframes blink { 0%, 44%, 48%, 100% { transform: scaleY(1); } 46% { transform: scaleY(.1); } }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+  </style>
+</head>
+<body>
+  <main>
+    <!-- A self-contained seaside illustration; nested groups keep rotation and placement independent. -->
+    <svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="title description">
+      <title id="title">鹈鹕的海边骑行</title>
+      <desc id="description">戴着珊瑚红帽子、系着红围巾的白色鹈鹕，骑着薄荷绿自行车沿海岸前行。车轮转动，双脚交替踩踏，云朵和路面缓缓向后移动。</desc>
+      <defs>
+        <g id="cloud" fill="#f8fcf7">
+          <path d="M0 32C-4 15 13 5 29 12C30-10 69-15 78 9C99-3 123 11 120 30C136 29 146 36 146 46H0Z"/>
+        </g>
+        <g id="cloud-strip">
+          <use href="#cloud" x="100" y="120"/>
+          <use href="#cloud" x="650" y="75"/>
+          <use href="#cloud" x="1020" y="200"/>
+        </g>
+        <g id="wave-strip" fill="none" stroke="#ebf8ef" stroke-width="3" stroke-linecap="round">
+          <path d="M10 476h55m90 35h64m24-57h37M30 551h35m53-8h47m75 26h27"/>
+        </g>
+        <g id="road-strip" fill="none" stroke-linecap="round">
+          <path d="M20 663h90m87 0h25" stroke="#faf8ef" stroke-width="5"/>
+          <path d="M80 716h22m133-14h40" stroke="#abb9ab" stroke-width="3"/>
+        </g>
+        <g id="wheel" class="ink" fill="none">
+          <circle r="91" stroke="#263e3d" stroke-width="13"/>
+          <circle r="82" stroke="#f5f5df" stroke-width="4"/>
+          <g stroke="#71877e" stroke-width="2">
+            <path d="M0-79V79M-79 0H79M-56-56 56 56M56-56-56 56M-30-73 30 73M30-73-30 73M-73-30 73 30M73-30-73 30"/>
+          </g>
+          <path d="M-59-51a78 78 0 0 1 17-15" stroke="#eeb768" stroke-width="5"/>
+          <circle r="8" fill="#f4f5e9" stroke-width="3"/>
+        </g>
+      </defs>
+
+      <path fill="#dceeea" d="M0 0H1200V800H0Z"/>
+      <circle cx="922" cy="190" r="63" fill="#f4cb6e"/>
+      <g class="clouds"><use href="#cloud-strip"/><use href="#cloud-strip" x="1200"/></g>
+      <path d="M0 435Q170 392 295 429T585 419T872 428T1200 410V600H0Z" fill="#aacbc0"/>
+      <path d="M0 453Q200 431 409 447T800 442T1200 445V613H0Z" fill="#6eb9b4"/>
+      <g class="water">
+        <use href="#wave-strip"/><use href="#wave-strip" x="300"/><use href="#wave-strip" x="600"/><use href="#wave-strip" x="900"/><use href="#wave-strip" x="1200"/>
+      </g>
+      <path d="M0 594Q245 570 475 598T885 597T1200 584V800H0Z" fill="#cbd5bd"/>
+      <path d="M0 620Q225 612 430 624T860 621T1200 615" fill="none" stroke="#f4f5df" stroke-width="5"/>
+      <g class="road">
+        <use href="#road-strip"/><use href="#road-strip" x="300"/><use href="#road-strip" x="600"/><use href="#road-strip" x="900"/><use href="#road-strip" x="1200"/>
+      </g>
+
+      <ellipse cx="582" cy="636" rx="258" ry="13" fill="#708e78" opacity=".17"/>
+      <g class="ink">
+        <g transform="translate(411 536)"><g id="rear-wheel"><use href="#wheel"/></g></g>
+        <g transform="translate(758 536)"><g id="front-wheel"><use href="#wheel"/></g></g>
+
+        <path id="far-leg" d="M550 405 601 450 598 529" fill="none" stroke="#b67b42" stroke-width="13"/>
+        <path id="far-foot" d="M583 529h32" stroke="#b67b42" stroke-width="14"/>
+        <path d="M411 536 495 410 571 536H411L495 410H704L571 536M686 368 758 536" fill="none" stroke="#263e3d" stroke-width="14"/>
+        <path d="M411 536 495 410 571 536H411L495 410H704L571 536M686 368 758 536" fill="none" stroke="#53a88c" stroke-width="8"/>
+        <path d="M495 410 485 381M686 368 676 343Q670 328 687 326H718Q735 327 730 345" fill="none" stroke-width="8"/>
+        <path d="M716 327Q735 327 730 345" fill="none" stroke="#b97557" stroke-width="11"/>
+        <path d="M458 380Q478 371 515 380L510 390H463Z" fill="#80594c" stroke-width="4"/>
+        <path d="M399 432h61m-60 0 11 104" fill="none" stroke="#547769" stroke-width="4"/>
+        <circle cx="571" cy="536" r="23" fill="#e7ead7" stroke-width="4"/>
+        <circle cx="571" cy="536" r="15" fill="#83b5a1" stroke-width="2"/>
+        <path d="M412 524 566 514M410 548 568 558" stroke="#516b5e" stroke-width="2"/>
+        <g id="crank" transform="translate(571 536)">
+          <path d="M-31 0H31" stroke="#263e3d" stroke-width="6"/>
+          <circle r="5" fill="#263e3d" stroke="none"/>
+        </g>
+
+        <g class="rider">
+          <path d="M460 344 410 321 432 366 410 364 449 397" fill="#f9faf1" stroke-width="4"/>
+          <path d="M468 326C440 341 427 375 453 399C477 422 536 420 568 397C601 374 621 340 625 293L628 234C628 214 616 196 595 200C570 202 566 221 571 246L579 291C581 317 563 340 549 341C522 316 492 314 468 326Z" fill="#fbfcf3" stroke-width="4"/>
+          <path d="M579 280C590 296 598 300 609 302L605 334C597 361 580 384 564 393C583 368 586 348 582 326Z" fill="#d9e5d9" stroke="none"/>
+          <path d="M464 356C482 336 511 345 532 359L575 363 623 340Q646 329 653 338C646 351 621 363 600 375C554 398 498 399 473 378" fill="#eef2e7" stroke-width="4"/>
+          <path d="m489 365 40 17m-23-27 40 18" fill="none" stroke="#b6cabe" stroke-width="3"/>
+          <path d="M645 338 675 331" fill="none" stroke-width="5"/>
+
+          <path class="scarf" d="M600 281C570 288 546 272 513 282L524 292 511 305C550 292 568 312 606 294Z" fill="#db6256" stroke-width="3"/>
+          <path d="M575 278Q596 287 623 272L625 286Q602 304 580 293Z" fill="#e66e5c" stroke-width="3"/>
+
+          <path d="M619 239 788 253C774 270 746 292 704 290C665 288 636 273 622 253Z" fill="#f3bc6e" stroke-width="4"/>
+          <path d="M623 237C681 235 743 241 793 251Q793 259 781 260L624 253Z" fill="#f4d080" stroke-width="4"/>
+          <path d="M636 261Q698 298 757 270" fill="none" stroke="#db985b" stroke-width="3"/>
+          <ellipse class="eye" cx="606" cy="229" rx="4.5" ry="6" fill="#263e3d" stroke="none"/>
+          <path d="M598 215q8-5 13 0" fill="none" stroke-width="3"/>
+          <path d="M570 208C567 181 588 168 608 178C620 182 626 193 625 207Z" fill="#df6759" stroke-width="4"/>
+          <path d="M570 208Q605 200 646 210Q649 216 638 219L574 216Z" fill="#e97a66" stroke-width="4"/>
+          <path d="M594 180q-10 10-9 20" fill="none" stroke="#ee9982" stroke-width="3"/>
+        </g>
+
+        <path id="near-leg" d="M524 403 512 474 602 536" fill="none" stroke="#263e3d" stroke-width="17"/>
+        <path id="near-leg-color" d="M524 403 512 474 602 536" fill="none" stroke="#e5ac61" stroke-width="11"/>
+        <path id="near-foot" d="M590 536q15-5 28 0" fill="none" stroke="#e5ac61" stroke-width="13"/>
+        <path id="near-pedal" d="M590 546h29" stroke-width="5"/>
+      </g>
+      <g fill="none" stroke="#5c877e" stroke-width="3" stroke-linecap="round" opacity=".55">
+        <path d="M345 326h39m-57 18h41m-28 18h28"/>
+      </g>
+    </svg>
+  </main>
+  <script>
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+    const byId = id => document.getElementById(id);
+    const rear = byId('rear-wheel');
+    const front = byId('front-wheel');
+    const crank = byId('crank');
+    const nearLeg = byId('near-leg');
+    const nearColor = byId('near-leg-color');
+    const farLeg = byId('far-leg');
+    const nearFoot = byId('near-foot');
+    const farFoot = byId('far-foot');
+    const pedal = byId('near-pedal');
+
+    // Solve the knee as the intersection of two fixed-length leg segments.
+    function legPath(hip, foot, bend) {
+      const dx = foot.x - hip.x, dy = foot.y - hip.y;
+      const distance = Math.hypot(dx, dy);
+      const upper = 88, lower = 86;
+      const along = (upper * upper - lower * lower + distance * distance) / (2 * distance);
+      const across = Math.sqrt(Math.max(0, upper * upper - along * along));
+      const kneeX = hip.x + along * dx / distance + bend * across * dy / distance;
+      const kneeY = hip.y + along * dy / distance - bend * across * dx / distance;
+      return 'M' + hip.x + ' ' + hip.y + 'L' + kneeX + ' ' + kneeY + 'L' + foot.x + ' ' + foot.y;
+    }
+
+    let phase = 0;
+    let lastTime;
+    function draw() {
+      const degrees = phase * 180 / Math.PI;
+      rear.setAttribute('transform', 'rotate(' + degrees * 1.65 + ')');
+      front.setAttribute('transform', 'rotate(' + degrees * 1.65 + ')');
+      crank.setAttribute('transform', 'translate(571 536) rotate(' + degrees + ')');
+      const foot = { x: 571 + 31 * Math.cos(phase), y: 536 + 31 * Math.sin(phase) };
+      const far = { x: 571 - 31 * Math.cos(phase), y: 536 - 31 * Math.sin(phase) };
+      const path = legPath({ x: 524, y: 403 }, foot, 1);
+      nearLeg.setAttribute('d', path);
+      nearColor.setAttribute('d', path);
+      farLeg.setAttribute('d', legPath({ x: 550, y: 405 }, far, 1));
+      nearFoot.setAttribute('d', 'M' + (foot.x - 10) + ' ' + (foot.y - 7) + 'q16-5 27 3');
+      farFoot.setAttribute('d', 'M' + (far.x - 10) + ' ' + (far.y - 4) + 'h27');
+      pedal.setAttribute('d', 'M' + (foot.x - 12) + ' ' + foot.y + 'h30');
+    }
+    function animate(time) {
+      if (lastTime !== undefined && !reducedMotion.matches && !document.hidden) {
+        phase += Math.min(time - lastTime, 50) * Math.PI * 2 / 1700;
+        draw();
+      }
+      lastTime = time;
+      requestAnimationFrame(animate);
+    }
+    draw();
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
